@@ -92,7 +92,7 @@ impl From<TestsSchema> for TestsResponseListDto {
 			banner: value.banner,
 			category: value.category,
 			question_count: if value.questions.is_empty() {
-				None
+				Some(value.sub_tests.len() as u32)
 			} else {
 				Some(value.questions.len() as u32)
 			},

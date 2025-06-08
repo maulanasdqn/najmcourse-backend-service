@@ -41,6 +41,13 @@ impl<'a> TestsRepository<'a> {
 			&meta,
 		)
 		.with_condition("is_deleted = false")
+		.fetch_fields(vec![
+			"questions",
+			"sub_tests",
+			"questions.options",
+			"sub_tests.questions",
+			"sub_tests.questions.options",
+		])
 		.search_field("name")
 		.select_fields(vec!["*"])
 		.build()
@@ -59,7 +66,6 @@ impl<'a> TestsRepository<'a> {
 	pub async fn query_test_by_id(&self, id: &str) -> Result<TestsItemDto> {
 		let db = &self.state.surrealdb_ws;
 
-		// Get the test with FETCH to populate the Thing references
 		let query = format!(
 			"SELECT * FROM {}:⟨{}⟩ WHERE is_deleted = false FETCH questions, questions.options, sub_tests, sub_tests.questions, sub_tests.questions.options",
 			ResourceEnum::Tests.to_string(),
@@ -77,7 +83,6 @@ impl<'a> TestsRepository<'a> {
 			bail!("Test not found");
 		}
 
-		// Extract basic test information
 		let test_id = match &test.id.id {
 			surrealdb::sql::Id::String(s) => s.clone(),
 			_ => "".to_string(),
@@ -86,7 +91,6 @@ impl<'a> TestsRepository<'a> {
 		let mut question_items = Vec::new();
 		let mut sub_test_items = None;
 
-		// Handle questions for Akademik category
 		if test.category.to_lowercase() == "akademik" {
 			if let Some(questions) = test.questions {
 				for question in questions.into_iter().filter(|q| !q.is_deleted) {
@@ -133,7 +137,6 @@ impl<'a> TestsRepository<'a> {
 			}
 		}
 
-		// Handle sub-tests for Psikologi category
 		if test.category.to_lowercase() == "psikologi" {
 			if let Some(sub_tests) = test.sub_tests {
 				let mut sub_tests_vec = Vec::new();
@@ -343,7 +346,6 @@ impl<'a> TestsRepository<'a> {
 		}
 	}
 
-	// Helper methods for creating separate entities
 	pub async fn query_create_options(
 		&self,
 		options: Vec<OptionsSchema>,
@@ -416,61 +418,42 @@ impl<'a> TestsRepository<'a> {
 
 		match payload.category.to_lowercase().as_str() {
 			"akademik" => {
-				// For akademik: create questions as separate entities and store Thing references
 				if let Some(questions_dto) = payload.questions {
 					let mut question_things = Vec::new();
-
 					for q_dto in questions_dto {
-						// Create options first
 						let option_schemas: Vec<OptionsSchema> = q_dto
 							.options
 							.clone()
 							.into_iter()
 							.map(|opt| OptionsSchema::create(opt))
 							.collect();
-
 						let option_ids = self.query_create_options(option_schemas).await?;
-
-						// Create question (options are embedded in the current schema)
 						let question_schema = QuestionsSchema::create(q_dto, option_ids);
 						let question_ids =
 							self.query_create_questions(vec![question_schema]).await?;
 						question_things.extend(question_ids);
 					}
-
-					// Update test schema with question Thing references
 					test_schema.questions = question_things;
 				}
-				// sub_tests should remain empty for akademik
 			}
 			"psikologi" => {
-				// For psikologi: create sub-tests as separate entities and store Thing references
 				if let Some(sub_tests_dto) = payload.sub_tests {
 					let mut sub_test_things = Vec::new();
-
 					for st_dto in sub_tests_dto {
-						// Create questions first and collect their Thing references
 						let mut question_things = Vec::new();
-
 						for q_dto in st_dto.questions {
-							// Create options for sub-test questions
 							let option_schemas: Vec<OptionsSchema> = q_dto
 								.options
 								.clone()
 								.into_iter()
 								.map(|opt| OptionsSchema::create(opt))
 								.collect();
-
 							let option_ids = self.query_create_options(option_schemas).await?;
-
-							// Create question
 							let question_schema = QuestionsSchema::create(q_dto, option_ids);
 							let question_ids =
 								self.query_create_questions(vec![question_schema]).await?;
 							question_things.extend(question_ids);
 						}
-
-						// Create sub-test with Thing references to questions
 						let sub_test_schema = super::SubTestsSchema {
 							id: najm_util::make_thing(
 								&ResourceEnum::SubTests.to_string(),
@@ -489,19 +472,11 @@ impl<'a> TestsRepository<'a> {
 							self.query_create_sub_tests(vec![sub_test_schema]).await?;
 						sub_test_things.extend(sub_test_ids);
 					}
-
-					// Update test schema with sub-test Thing references
 					test_schema.sub_tests = sub_test_things;
 				}
-				// questions should remain empty for psikologi
 			}
-			_ => {
-				// For other categories, both arrays should remain empty
-				// No additional processing needed
-			}
+			_ => {}
 		}
-
-		// Create the test with the updated schema
 		let record: Option<TestsSchema> = db
 			.create(ResourceEnum::Tests.to_string())
 			.content(test_schema)
@@ -519,14 +494,10 @@ impl<'a> TestsRepository<'a> {
 		payload: super::TestsUpdateRequestDto,
 	) -> Result<String> {
 		let db = &self.state.surrealdb_ws;
-
-		// First, check if the test exists
 		let existing = self.query_raw_test_by_id(&id).await?;
 		if existing.is_deleted {
 			bail!("Test already deleted");
 		}
-
-		// Convert TestsUpdateRequestDto to TestsCreateRequestDto first
 		let create_payload = super::TestsCreateRequestDto {
 			name: payload.name,
 			questions: payload.questions.map(|questions| {
@@ -588,61 +559,43 @@ impl<'a> TestsRepository<'a> {
 
 		match payload.category.to_lowercase().as_str() {
 			"akademik" => {
-				// For akademik: create questions as separate entities and store Thing references
 				if let Some(questions_dto) = create_payload.questions {
 					let mut question_things = Vec::new();
-
 					for q_dto in questions_dto {
-						// Create options first
 						let option_schemas: Vec<OptionsSchema> = q_dto
 							.options
 							.clone()
 							.into_iter()
 							.map(|opt| OptionsSchema::create(opt))
 							.collect();
-
 						let option_ids = self.query_create_options(option_schemas).await?;
-
-						// Create question (options are embedded in the current schema)
 						let question_schema = QuestionsSchema::create(q_dto, option_ids);
 						let question_ids =
 							self.query_create_questions(vec![question_schema]).await?;
 						question_things.extend(question_ids);
 					}
-
-					// Update test schema with question Thing references
 					test_schema.questions = question_things;
 				}
-				// sub_tests should remain empty for akademik
 			}
 			"psikologi" => {
-				// For psikologi: create sub-tests as separate entities and store Thing references
 				if let Some(sub_tests_dto) = create_payload.sub_tests {
 					let mut sub_test_things = Vec::new();
-
 					for st_dto in sub_tests_dto {
-						// Create questions first and collect their Thing references
 						let mut question_things = Vec::new();
-
 						for q_dto in st_dto.questions {
-							// Create options for sub-test questions
 							let option_schemas: Vec<OptionsSchema> = q_dto
 								.options
 								.clone()
 								.into_iter()
 								.map(|opt| OptionsSchema::create(opt))
 								.collect();
-
 							let option_ids = self.query_create_options(option_schemas).await?;
-
-							// Create question
 							let question_schema = QuestionsSchema::create(q_dto, option_ids);
 							let question_ids =
 								self.query_create_questions(vec![question_schema]).await?;
 							question_things.extend(question_ids);
 						}
 
-						// Create sub-test with Thing references to questions
 						let sub_test_schema = super::SubTestsSchema {
 							id: najm_util::make_thing(
 								&ResourceEnum::SubTests.to_string(),
@@ -661,23 +614,16 @@ impl<'a> TestsRepository<'a> {
 							self.query_create_sub_tests(vec![sub_test_schema]).await?;
 						sub_test_things.extend(sub_test_ids);
 					}
-
-					// Update test schema with sub-test Thing references
 					test_schema.sub_tests = sub_test_things;
 				}
-				// questions should remain empty for psikologi
 			}
-			_ => {
-				// For other categories, both arrays should remain empty
-				// No additional processing needed
-			}
+			_ => {}
 		}
 
-		// Update the test with the updated schema
 		let updated_schema = TestsSchema {
 			id: najm_util::make_thing(&ResourceEnum::Tests.to_string(), &id),
-			created_at: existing.created_at, // Preserve original created_at
-			updated_at: najm_util::get_iso_date(), // Update the timestamp
+			created_at: existing.created_at,
+			updated_at: najm_util::get_iso_date(),
 			..test_schema
 		};
 
