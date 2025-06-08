@@ -82,21 +82,22 @@ pub struct TestsResponseListDto {
 
 impl From<TestsSchema> for TestsResponseListDto {
 	fn from(value: TestsSchema) -> Self {
-		let id = match &value.id.id {
-			surrealdb::sql::Id::String(s) => s.clone(),
-			_ => "".to_string(),
-		};
+		let id = &value.id.id.to_raw();
 		TestsResponseListDto {
-			id,
+			id: id.to_string(),
 			name: value.name,
 			banner: value.banner,
 			category: value.category,
 			question_count: if value.questions.is_empty() {
-				Some(value.sub_tests.len() as u32)
+				Some(0)
 			} else {
 				Some(value.questions.len() as u32)
 			},
-			sub_test_count: value.sub_tests.len() as u32,
+			sub_test_count: if value.sub_tests.is_empty() {
+				0
+			} else {
+				value.sub_tests.len() as u32
+			},
 			created_at: value.created_at,
 			updated_at: value.updated_at,
 		}
@@ -108,12 +109,9 @@ impl TestsItemDto {
 		value: TestsSchema,
 		questions: Option<Vec<QuestionsItemDto>>,
 	) -> Self {
-		let id = match &value.id.id {
-			surrealdb::sql::Id::String(s) => s.clone(),
-			_ => "".to_string(),
-		};
+		let id = &value.id.id.to_raw();
 		TestsItemDto {
-			id,
+			id: id.to_string(),
 			name: value.name,
 			banner: value.banner,
 			category: value.category,
@@ -129,12 +127,9 @@ impl TestsItemDto {
 		questions: Option<Vec<QuestionsItemDto>>,
 		sub_tests: Option<Vec<SubTestsItemDto>>,
 	) -> Self {
-		let id = match &value.id.id {
-			surrealdb::sql::Id::String(s) => s.clone(),
-			_ => "".to_string(),
-		};
+		let id = &value.id.id.to_raw();
 		TestsItemDto {
-			id,
+			id: id.to_string(),
 			name: value.name,
 			banner: value.banner,
 			category: value.category,
