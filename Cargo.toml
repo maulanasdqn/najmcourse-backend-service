@@ -1,0 +1,48 @@
+[workspace]
+resolver = "2"
+members = [ 
+  "tests",
+  "najm-iam",
+  "najm-cms",
+  "najm-lib",
+  "najm-exam",
+  "najm-util",
+  "najm-entity",
+  "najm-gateway",
+  "najm-backend",
+  "najm-middleware", "najm-integration", 
+]
+
+
+[workspace.dependencies]
+axum = { version = "0.8.4", features = ["multipart"] }
+serde = { version = "1.0.217", features = ["derive"] }
+tokio = { version = "1.45.1", features = ["full"] }
+argon2 = { version = "0.5.3", features = ["password-hash"] }
+utoipa = { version = "5.3.1", features = ["axum_extras"] }
+lettre = { version = "0.11.17", features = ["tokio1-native-tls"] }
+surrealdb = { version = "2.3.3", features = ["kv-mem"] }
+rand = { version = "0.9.1", features = ["std", "alloc"] }
+tower-http = { version = "0.6.6", features = ["cors"] }
+validator = { version = "0.20.0", features = ["derive"] }
+utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
+jsonwebtoken = "9.3.1"
+serde_json = "1.0.138"
+lazy_static = "1.4.0"
+thiserror = "2.0.12"
+chrono = "0.4.41"
+regex = "1.11.1"
+anyhow = "1.0.98"
+rand_distr = "0.5.1"
+axum-test = "17.2.0"
+fancy-regex = "0.14.0"
+futures = "0.3.31"
+log = "0.4.25"
+tower = "0.5.2"
+env_logger = "0.11.8"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+opt-level = "z"

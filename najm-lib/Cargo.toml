@@ -1,0 +1,16 @@
+[package]
+name = "najm-lib"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+najm-entity = { path = "../najm-entity" }
+log.workspace = true
+axum.workspace = true
+tokio.workspace = true
+serde.workspace = true
+argon2.workspace = true
+lettre.workspace = true
+chrono.workspace = true
+surrealdb.workspace = true
+jsonwebtoken.workspace = true

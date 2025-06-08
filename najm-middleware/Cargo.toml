@@ -1,0 +1,27 @@
+[package]
+name = "najm-middleware"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+najm-iam = { version = "0.1.0", path = "../najm-iam" }
+najm-lib = { version = "0.1.0", path = "../najm-lib" }
+najm-util = { version = "0.1.0", path = "../najm-util" }
+najm-entity = { version = "0.1.0", path = "../najm-entity" }
+axum.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+utoipa.workspace = true
+lazy_static.workspace = true
+regex.workspace = true
+validator.workspace = true
+axum-test.workspace = true
+surrealdb.workspace = true
+rand.workspace = true
+tokio.workspace = true
+chrono.workspace = true
+anyhow.workspace = true
+tower-http.workspace = true
+futures.workspace = true
+tower.workspace = true
+utoipa-swagger-ui.workspace = true

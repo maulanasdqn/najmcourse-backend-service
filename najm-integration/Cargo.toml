@@ -1,0 +1,19 @@
+[package]
+name = "najm-integration"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+utoipa.workspace = true
+tokio.workspace = true
+surrealdb.workspace = true
+log.workspace = true
+minio-rsc = "0.2.3"
+mime_guess = "2.0.5"
+bytes = "1.10.1"
+najm-lib = { version = "0.1.0", path = "../najm-lib" }
+najm-util = { version = "0.1.0", path = "../najm-util" }
+najm-entity = { version = "0.1.0", path = "../najm-entity" }

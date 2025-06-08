@@ -1,0 +1,11 @@
+[package]
+name = "najm-entity"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum.workspace = true
+serde.workspace = true
+utoipa.workspace = true
+surrealdb.workspace = true
+thiserror.workspace = true
