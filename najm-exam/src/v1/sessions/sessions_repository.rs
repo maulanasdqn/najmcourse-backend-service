@@ -66,7 +66,10 @@ impl<'a> SessionsRepository<'a> {
 			.with_select_fields(vec!["*"])
 			.with_fetch("tests.test")
 			.with_fetch("tests.test.questions")
-			.with_fetch("tests.test.questions.options");
+			.with_fetch("tests.test.questions.options")
+			.with_fetch("tests.test.sub_tests")
+			.with_fetch("tests.test.sub_tests.questions")
+			.with_fetch("tests.test.sub_tests.questions.options");
 		let sql = builder.build();
 		let result: Option<SessionsDetailSchema> =
 			builder.apply_bindings(db.query(sql)).await?.take(0)?;

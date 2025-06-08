@@ -1,3 +1,4 @@
+use najm_iam::RolesEnum;
 use najm_util::{get_iso_date, hash_password, Env};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
@@ -44,21 +45,21 @@ async fn main() -> Result<(), Box<dyn Error>> {
 			"admin@example.com",
 			"Admin",
 			None,
-			"f6b03f25-e416-4893-ac88-caaa690afb07",
+			RolesEnum::Admin.id(),
 		),
 		(
 			"a4d23fb5-9e31-423c-9842-fbd6e75a5298",
 			"staff@example.com",
 			"Staff",
 			None,
-			"50133429-f4b1-4249-9f97-7b86e6ee9d86",
+			RolesEnum::Staff.id(),
 		),
 		(
 			"d5e89c12-72af-4b1a-abc3-ff1234567890",
 			"student@example.com",
 			"Student",
 			Some("TNI".into()),
-			"5713cb37-dc02-4e87-8048-d7a41d352059",
+			RolesEnum::Student.id(),
 		),
 	];
 	for (id, email, fullname, student_type, role_id) in users {

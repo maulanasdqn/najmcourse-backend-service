@@ -1,5 +1,5 @@
 use super::{SessionsDetailSchema, SessionsSchema};
-use crate::{OptionsItemDto, QuestionsItemDto, TestsItemDto};
+use crate::{OptionsItemDto, QuestionsItemDto, SubTestsItemDto, TestsItemDto};
 use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -160,13 +160,63 @@ impl From<SessionsDetailSchema> for SessionsDetailResponseDto {
 					questions.shuffle(&mut rng);
 				}
 
+				let sub_tests = test.sub_tests.map(|sub_tests_vec| {
+					sub_tests_vec
+						.into_iter()
+						.map(|sub_test| {
+							let sub_test_questions: Vec<QuestionsItemDto> = sub_test
+								.questions
+								.into_iter()
+								.map(|q| {
+									let options = q
+										.options
+										.into_iter()
+										.filter_map(|o_opt| {
+											o_opt.map(|o| OptionsItemDto {
+												id: o.id.id.to_raw(),
+												label: o.label.unwrap_or("".into()),
+												is_correct: None,
+												points: None,
+												image_url: o.image_url,
+												created_at: o.created_at,
+												updated_at: o.updated_at,
+											})
+										})
+										.collect();
+
+									QuestionsItemDto {
+										id: q.id.id.to_raw(),
+										question: q.question.unwrap_or("".into()),
+										discussion: q.discussion.unwrap_or("".into()),
+										question_image_url: q.question_image_url,
+										discussion_image_url: q.discussion_image_url,
+										options,
+										created_at: q.created_at,
+										updated_at: q.updated_at,
+									}
+								})
+								.collect();
+
+							SubTestsItemDto {
+								id: sub_test.id.id.to_raw(),
+								name: sub_test.name,
+								banner: sub_test.banner,
+								category: sub_test.category,
+								questions: sub_test_questions,
+								created_at: sub_test.created_at,
+								updated_at: sub_test.updated_at,
+							}
+						})
+						.collect()
+				});
+
 				let test_item = TestsItemDto {
 					id: test.id.id.to_raw(),
 					name: test.name,
 					banner: test.banner,
 					category: test.category,
 					questions: Some(questions),
-					sub_tests: Some(test.sub_tests),
+					sub_tests,
 					created_at: test.created_at,
 					updated_at: test.updated_at,
 				};
