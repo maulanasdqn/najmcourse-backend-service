@@ -1,49 +1,59 @@
-# IMPHNEN Backend Service
+# Najm Course Backend Service
 
-<p align="center">
-  <img src="docs/logo.svg" alt="IMPHNEN">
-</p>
+This repository serves as the **monorepo** for the Najm Course backend services. It encompasses several main services and libraries:
 
-This repository serves as the **monorepo** for all backend services of IMPHNEN. It encompasses several main services:
+## Core Services
 
-1. **najm-Backend** - Provides fundamental functionalities and shared resources for other services.
-2. **najm-IAM** - Handles identity and access management across IMPHNEN applications.
-3. **najm-CMS** - Supports the cms services by IMPHNEN [Landing Page website](https://imphnen.dev/).
-4. **najm-Gacha** - Supports the gacha services by IMPHNEN [Gacha website](https://gacha.imphnen.dev/).
-5. **najm-Dimentorin** - Supports the mentoring services by IMPHNEN [Dimentorin website](https://dimentorin.imphnen.dev/).
-6. **najm-Gateway** - Acts as the API gateway, routing requests to appropriate services.
-7. **najm-Middleware** - Acts as the middleware for the API Gateway, providing authentication and authorization.
+1. **najm-backend** - Main application entry point that initializes the gateway service.
+2. **najm-gateway** - Acts as the API gateway, routing requests to appropriate services and providing unified API documentation.
+3. **najm-iam** - Handles identity and access management, including authentication, authorization, users, roles, and permissions.
+4. **najm-cms** - Content management system services for handling dynamic content.
+5. **najm-exam** - Examination system services including tests, questions, options, answers, and sessions.
+6. **najm-integration** - Integration services for external systems and APIs.
+7. **najm-middleware** - Middleware components for authentication, CORS, and permissions.
+
+## Supporting Libraries
+
+8. **najm-lib** - Core library providing shared utilities for Axum, SurrealDB, JWT, Argon2, environment handling, and email services.
+9. **najm-entity** - Shared data transfer objects and error handling entities.
+10. **najm-util** - Utility functions for validation, query building, response formatting, and common operations.
+11. **tests** - Comprehensive test suite for all services.
 
 ## How to Install
 
 1. **Clone the repository**:
 
    ```sh
-   git clone https://github.com/IMPHNEN/najm-backend-service.git
-   cd najm-backend-service
+   git clone <repository-url>
+   cd najmcourse-backend-service-v2
    ```
 
 2. **Set up the environment**:
 
-   - Copy the example environment files:
+   - Copy the example environment file:
 
      ```sh
      cp .env.example .env
      ```
 
-     if you use windows based system
+     For Windows-based systems:
 
      ```sh
      ./apply-env.ps1
      ```
 
-     if you use unix based system
+     For Unix-based systems:
 
      ```sh
      source ./apply-env.sh
      ```
 
-   - Modify the `.env` files with your specific configuration settings.
+   - Modify the `.env` file with your specific configuration settings including:
+     - `PORT` - Application port
+     - `SURREALDB_URL` - SurrealDB connection URL
+     - `SURREALDB_USERNAME` and `SURREALDB_PASSWORD` - Database credentials
+     - `SURREALDB_NAMESPACE` and `SURREALDB_DBNAME` - Database namespace and name
+     - `ACCESS_TOKEN_SECRET` and `REFRESH_TOKEN_SECRET` - JWT secrets
 
 3. **Install dependencies**:
 
@@ -53,9 +63,9 @@ This repository serves as the **monorepo** for all backend services of IMPHNEN. 
    cargo fetch
    ```
 
-4. **Run the seeders**:
+4. **Run the seeders** (optional):
 
-   to run the seeders, run:
+   To populate the database with initial data:
 
    ```sh
    cargo run --bin seeder
@@ -67,41 +77,52 @@ This repository serves as the **monorepo** for all backend services of IMPHNEN. 
 
 To run the services in development mode:
 
-1. **Start the database and other dependencies** using Docker Compose:
+1. **Start the database** using Docker Compose:
 
    ```sh
-   docker-compose up -d
+   docker-compose up -d surrealdb
    ```
 
-2. **Run using cargo run**. For example, to run the Core Service:
+   This will start SurrealDB on port 8000.
+
+2. **Run the main API service**:
 
    ```sh
    cargo run --bin api
    ```
 
-3. **Run using cargo watch**. For example, to run the Core Service:
+   The API will be available at `http://localhost:{PORT}` where `{PORT}` is defined in your `.env` file.
+
+3. **Run with auto-reload during development**:
 
    ```sh
    cargo watch -x "run --bin api"
    ```
 
+4. **Access the API documentation**:
+
+   Once the service is running, visit `http://localhost:{PORT}/docs` for the Swagger UI documentation.
+
 ### Production
 
 For production deployment:
 
-1. **Build the Docker image**:
+1. **Build and run using Docker Compose**:
+
+   ```sh
+   docker-compose up -d
+   ```
+
+   This will build the application and start both the API service and SurrealDB.
+
+2. **Or build and run manually**:
 
    ```sh
    docker build -t najm-backend .
+   docker run --name najm-backend -d --env-file .env -p ${PORT}:${PORT} najm-backend
    ```
 
-2. **Run the Docker container**:
-
-   ```sh
-   docker run --name najm-backend -d --env-file .env -p 3000:3000 najm-backend
-   ```
-
-   Adjust the port and environment variables as needed.
+   Make sure to adjust the port mapping according to your `.env` configuration.
 
 ## How to Run the Tests
 
@@ -125,6 +146,25 @@ For production deployment:
 
 If you encounter any issues or have questions, feel free to create a new issue in the repository.
 
+## Technology Stack
+
+- **Language**: Rust
+- **Web Framework**: Axum
+- **Database**: SurrealDB
+- **Authentication**: JWT with Argon2 password hashing
+- **Documentation**: OpenAPI/Swagger UI
+- **Testing**: Cargo test with axum-test
+- **Containerization**: Docker & Docker Compose
+
+## API Documentation
+
+When the service is running, comprehensive API documentation is available at:
+
+- **Swagger UI**: `http://localhost:{PORT}/docs`
+- **OpenAPI JSON**: `http://localhost:{PORT}/openapi.json`
+
+The API documentation includes all available endpoints, request/response schemas, and authentication requirements.
+
 ---
 
-_Note: For detailed API documentation, please refer to our [API Docs](https://api.imphnen.dev/docs)._
+For questions or issues, please create a new issue in this repository.
