@@ -41,13 +41,6 @@ impl<'a> TestsRepository<'a> {
 			&meta,
 		)
 		.with_condition("is_deleted = false")
-		.fetch_fields(vec![
-			"questions",
-			"sub_tests",
-			"questions.options",
-			"sub_tests.questions",
-			"sub_tests.questions.options",
-		])
 		.search_field("name")
 		.select_fields(vec!["*"])
 		.build()
@@ -425,7 +418,7 @@ impl<'a> TestsRepository<'a> {
 							.options
 							.clone()
 							.into_iter()
-							.map(|opt| OptionsSchema::create(opt))
+							.map(OptionsSchema::create)
 							.collect();
 						let option_ids = self.query_create_options(option_schemas).await?;
 						let question_schema = QuestionsSchema::create(q_dto, option_ids);
