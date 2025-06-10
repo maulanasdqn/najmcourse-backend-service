@@ -1,3 +1,5 @@
+use crate::RolesEnum;
+
 use super::{UsersCreateRequestDto, UsersDetailQueryDto, UsersUpdateRequestDto};
 use najm_lib::{ResourceEnum, hash_password};
 use najm_util::{get_iso_date, make_thing};
@@ -9,19 +11,19 @@ pub struct UsersSchema {
 	pub id: Thing,
 	pub fullname: String,
 	pub email: String,
+	pub phone_number: String,
 	pub password: String,
 	pub avatar: Option<String>,
-	pub phone_number: String,
 	pub referral_code: Option<String>,
 	pub refered_by: Option<String>,
 	pub identity_number: Option<String>,
 	pub is_active: bool,
 	pub is_deleted: bool,
+	pub is_profile_completed: bool,
 	pub student_type: Option<String>,
 	pub religion: Option<String>,
 	pub gender: Option<String>,
 	pub birthdate: Option<String>,
-	pub is_profile_completed: bool,
 	pub role: Thing,
 	pub created_at: String,
 	pub updated_at: String,
@@ -29,30 +31,32 @@ pub struct UsersSchema {
 
 impl Default for UsersSchema {
 	fn default() -> Self {
+		let user_uuid = &Uuid::new_v4().to_string();
+		let user_table = &ResourceEnum::Users.to_string();
+		let user_thing = make_thing(user_table, user_uuid);
+		let role_uuid = &RolesEnum::Admin.id();
+		let role_table = &ResourceEnum::Roles.to_string();
+		let role_thing = make_thing(role_table, role_uuid);
+		let password = hash_password("password").unwrap();
+
 		Self {
-			id: make_thing(
-				&ResourceEnum::Users.to_string(),
-				&Uuid::new_v4().to_string(),
-			),
+			id: user_thing,
 			fullname: String::new(),
 			email: String::new(),
-			password: hash_password("").unwrap(),
-			avatar: None,
 			phone_number: String::new(),
-			is_active: true,
-			is_deleted: false,
-			gender: None,
-			birthdate: None,
-			role: make_thing(
-				&ResourceEnum::Roles.to_string(),
-				"5713cb37-dc02-4e87-8048-d7a41d352059",
-			),
+			password,
+			avatar: None,
 			referral_code: None,
 			refered_by: None,
-			student_type: None,
-			is_profile_completed: false,
-			religion: None,
 			identity_number: None,
+			is_active: true,
+			is_deleted: false,
+			is_profile_completed: false,
+			student_type: None,
+			religion: None,
+			gender: None,
+			birthdate: None,
+			role: role_thing,
 			created_at: get_iso_date(),
 			updated_at: get_iso_date(),
 		}
@@ -75,7 +79,7 @@ impl UsersSchema {
 			student_type: dto.student_type,
 			referral_code: dto.referral_code,
 			refered_by: dto.refered_by,
-			role: make_thing(&ResourceEnum::Roles.to_string(), &dto.role.id.id.to_raw()),
+			role: dto.role.id,
 			created_at: dto.created_at,
 			updated_at: dto.updated_at,
 			..Default::default()

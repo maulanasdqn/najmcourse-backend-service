@@ -45,11 +45,8 @@ impl TestsService {
 		if let Err((status, message)) = validate_request(&payload) {
 			return common_response(status, &message);
 		}
-
-		// Validate based on category
 		match payload.category.to_lowercase().as_str() {
 			"psikologi" => {
-				// For Psikologi, validate sub-tests if provided
 				if let Some(sub_tests) = &payload.sub_tests {
 					for sub_test in sub_tests {
 						if let Err(e) = sub_test.validate() {
@@ -69,16 +66,14 @@ impl TestsService {
 				}
 			}
 			"akademik" => {
-				// For Akademik, questions are required
 				if payload.questions.is_none()
-					|| payload.questions.as_ref().map_or(true, |q| q.is_empty())
+					|| payload.questions.as_ref().is_none_or(|q| q.is_empty())
 				{
 					return common_response(
 						StatusCode::BAD_REQUEST,
 						"Questions are required for Akademik category",
 					);
 				}
-				// Validate questions
 				if let Some(questions) = &payload.questions {
 					for question in questions {
 						if let Err(e) = question.validate() {
@@ -91,7 +86,6 @@ impl TestsService {
 						}
 					}
 				}
-				// Sub-tests are optional for Akademik, validate if provided
 				if let Some(sub_tests) = &payload.sub_tests {
 					for sub_test in sub_tests {
 						if let Err(e) = sub_test.validate() {
@@ -111,7 +105,6 @@ impl TestsService {
 				}
 			}
 			_ => {
-				// For other categories, sub-tests are not allowed
 				if payload.sub_tests.is_some() {
 					return common_response(
 						StatusCode::BAD_REQUEST,
@@ -120,7 +113,6 @@ impl TestsService {
 				}
 			}
 		}
-
 		let repo = TestsRepository::new(state);
 		match repo.query_create_test_with_relations(payload).await {
 			Ok(msg) => common_response(StatusCode::CREATED, &msg),
@@ -136,11 +128,8 @@ impl TestsService {
 		if let Err((status, message)) = validate_request(&payload) {
 			return common_response(status, &message);
 		}
-
-		// Validate based on category
 		match payload.category.to_lowercase().as_str() {
 			"psikologi" => {
-				// For Psikologi, validate sub-tests if provided
 				if let Some(sub_tests) = &payload.sub_tests {
 					for sub_test in sub_tests {
 						if let Err(e) = sub_test.validate() {
@@ -160,16 +149,14 @@ impl TestsService {
 				}
 			}
 			"akademik" => {
-				// For Akademik, questions are required
 				if payload.questions.is_none()
-					|| payload.questions.as_ref().map_or(true, |q| q.is_empty())
+					|| payload.questions.as_ref().is_none_or(|q| q.is_empty())
 				{
 					return common_response(
 						StatusCode::BAD_REQUEST,
 						"Questions are required for Akademik category",
 					);
 				}
-				// Validate questions
 				if let Some(questions) = &payload.questions {
 					for question in questions {
 						if let Err(e) = question.validate() {
@@ -182,7 +169,6 @@ impl TestsService {
 						}
 					}
 				}
-				// Sub-tests are optional for Akademik, validate if provided
 				if let Some(sub_tests) = &payload.sub_tests {
 					for sub_test in sub_tests {
 						if let Err(e) = sub_test.validate() {
@@ -202,7 +188,6 @@ impl TestsService {
 				}
 			}
 			_ => {
-				// For other categories, sub-tests are not allowed
 				if payload.sub_tests.is_some() {
 					return common_response(
 						StatusCode::BAD_REQUEST,
@@ -211,7 +196,6 @@ impl TestsService {
 				}
 			}
 		}
-
 		let repo = TestsRepository::new(state);
 		match repo.query_update_test_with_relations(id, payload).await {
 			Ok(msg) => common_response(StatusCode::OK, &msg),

@@ -61,7 +61,7 @@ impl<'a> TestsRepository<'a> {
 
 		let query = format!(
 			"SELECT * FROM {}:⟨{}⟩ WHERE is_deleted = false FETCH questions, questions.options, sub_tests, sub_tests.questions, sub_tests.questions.options",
-			ResourceEnum::Tests.to_string(),
+			ResourceEnum::Tests,
 			id
 		);
 
@@ -214,7 +214,7 @@ impl<'a> TestsRepository<'a> {
 		let db = &self.state.surrealdb_ws;
 		let query = format!(
 			"SELECT * FROM {} WHERE name = $name AND is_deleted = false LIMIT 1 FETCH questions, questions.options",
-			ResourceEnum::Tests.to_string()
+			ResourceEnum::Tests
 		);
 		let mut result = db.query(query).bind(("name", name.to_string())).await?;
 		let test: Option<TestsDetailSchema> = result.take(0)?;
@@ -439,7 +439,7 @@ impl<'a> TestsRepository<'a> {
 								.options
 								.clone()
 								.into_iter()
-								.map(|opt| OptionsSchema::create(opt))
+								.map(OptionsSchema::create)
 								.collect();
 							let option_ids = self.query_create_options(option_schemas).await?;
 							let question_schema = QuestionsSchema::create(q_dto, option_ids);
@@ -559,7 +559,7 @@ impl<'a> TestsRepository<'a> {
 							.options
 							.clone()
 							.into_iter()
-							.map(|opt| OptionsSchema::create(opt))
+							.map(OptionsSchema::create)
 							.collect();
 						let option_ids = self.query_create_options(option_schemas).await?;
 						let question_schema = QuestionsSchema::create(q_dto, option_ids);
@@ -580,7 +580,7 @@ impl<'a> TestsRepository<'a> {
 								.options
 								.clone()
 								.into_iter()
-								.map(|opt| OptionsSchema::create(opt))
+								.map(OptionsSchema::create)
 								.collect();
 							let option_ids = self.query_create_options(option_schemas).await?;
 							let question_schema = QuestionsSchema::create(q_dto, option_ids);

@@ -32,21 +32,18 @@ impl AuthService {
 			Ok(user) => {
 				let is_password_correct =
 					verify_password(&payload.password, &user.password).unwrap_or(false);
-
 				if !is_password_correct {
 					return common_response(
 						StatusCode::BAD_REQUEST,
 						"Email or password not correct",
 					);
 				}
-
 				if !user.is_active {
 					return common_response(
 						StatusCode::BAD_REQUEST,
 						"Account not active, please verify your email",
 					);
 				}
-
 				let access_token = match encode_access_token(payload.email.clone()) {
 					Ok(token) => token,
 					Err(_) => {
@@ -56,7 +53,6 @@ impl AuthService {
 						);
 					}
 				};
-
 				let refresh_token = match encode_refresh_token(payload.email.clone()) {
 					Ok(token) => token,
 					Err(_) => {
@@ -66,7 +62,6 @@ impl AuthService {
 						);
 					}
 				};
-
 				let response = ResponseSuccessDto {
 					data: AuthLoginResponsetDto {
 						user: UsersDetailItemDto::from(&user),
@@ -76,11 +71,9 @@ impl AuthService {
 						},
 					},
 				};
-
 				if let Err(_err) = auth_repo.query_store_user(user).await {
 					return common_response(StatusCode::BAD_REQUEST, "User already login");
 				}
-
 				success_response(response)
 			}
 			Err(err) => common_response(StatusCode::UNAUTHORIZED, &err.to_string()),

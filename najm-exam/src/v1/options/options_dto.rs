@@ -42,12 +42,8 @@ pub struct OptionsResponseListDto {
 
 impl From<OptionsSchema> for OptionsResponseListDto {
 	fn from(value: OptionsSchema) -> Self {
-		let id = match &value.id.id {
-			surrealdb::sql::Id::String(s) => s.clone(),
-			_ => "".to_string(),
-		};
 		OptionsResponseListDto {
-			id,
+			id: value.id.id.to_raw(),
 			label: value.label.unwrap_or("".into()),
 			image_url: value.image_url,
 			created_at: value.created_at,
@@ -59,10 +55,7 @@ impl From<OptionsSchema> for OptionsResponseListDto {
 impl From<OptionsSchema> for OptionsItemDto {
 	fn from(o: OptionsSchema) -> Self {
 		Self {
-			id: match o.id.id {
-				surrealdb::sql::Id::String(s) => s,
-				_ => "".to_string(),
-			},
+			id: o.id.id.to_raw(),
 			label: o.label.unwrap_or("".into()),
 			is_correct: Some(o.is_correct),
 			points: o.points,

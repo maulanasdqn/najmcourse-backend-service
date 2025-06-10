@@ -51,12 +51,9 @@ pub struct QuestionsResponseListDto {
 
 impl From<QuestionsSchema> for QuestionsResponseListDto {
 	fn from(value: QuestionsSchema) -> Self {
-		let id = match &value.id.id {
-			surrealdb::sql::Id::String(s) => s.clone(),
-			_ => "".to_string(),
-		};
+		let id = &value.id.id.to_raw().to_string();
 		QuestionsResponseListDto {
-			id,
+			id: id.to_string(),
 			question: value.question.unwrap_or("".into()),
 			discussion: value.discussion.unwrap_or("".into()),
 			created_at: value.created_at,
@@ -70,19 +67,14 @@ impl QuestionsItemDto {
 		value: QuestionsDetailSchema,
 		options: Vec<Option<OptionsSchema>>,
 	) -> Self {
-		let id = match &value.id.id {
-			surrealdb::sql::Id::String(s) => s.clone(),
-			_ => String::new(),
-		};
-
+		let id = &value.id.id.to_raw();
 		let mapped_options = options
 			.into_iter()
-			.filter_map(|o| o)
+			.flatten()
 			.map(OptionsItemDto::from)
 			.collect();
-
 		Self {
-			id,
+			id: id.to_string(),
 			question: value.question.unwrap_or("".into()),
 			discussion: value.discussion.unwrap_or("".into()),
 			question_image_url: value.question_image_url,

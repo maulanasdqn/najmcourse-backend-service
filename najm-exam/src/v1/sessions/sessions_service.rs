@@ -47,12 +47,9 @@ impl SessionsService {
 		if let Err((status, message)) = validate_request(&payload) {
 			return common_response(status, &message);
 		}
-
-		// Validate that tests are not empty
 		if payload.tests.is_empty() {
 			return common_response(StatusCode::BAD_REQUEST, "Tests must not be empty");
 		}
-
 		let repo = SessionsRepository::new(state);
 		match repo
 			.query_create_session(SessionsSchema::create(payload))
@@ -71,12 +68,9 @@ impl SessionsService {
 		if let Err((status, message)) = validate_request(&payload) {
 			return common_response(status, &message);
 		}
-
-		// Validate that tests are not empty
 		if payload.tests.is_empty() {
 			return common_response(StatusCode::BAD_REQUEST, "Tests must not be empty");
 		}
-
 		let repo = SessionsRepository::new(state);
 		let updated_session = SessionsSchema::update(payload, id);
 		match repo.query_update_session(updated_session).await {

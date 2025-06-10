@@ -37,10 +37,9 @@ impl<'a> AnswersRepository<'a> {
 		user_id: &str,
 	) -> Result<TestsItemAnswersDto> {
 		let db = &self.state.surrealdb_ws;
-		let question_repo = QuestionsRepository::new(&self.state);
-		let session_repo = SessionsRepository::new(&self.state);
-		let _test_repo = TestsRepository::new(&self.state);
-
+		let question_repo = QuestionsRepository::new(self.state);
+		let session_repo = SessionsRepository::new(self.state);
+		let _test_repo = TestsRepository::new(self.state);
 		let session = session_repo
 			.query_session_by_id(session_id.to_string())
 			.await?;
