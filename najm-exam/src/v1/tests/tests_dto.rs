@@ -10,18 +10,25 @@ use validator::Validate;
 pub struct SubTestsCreateRequestDto {
 	#[validate(length(min = 1, message = "Name must not be empty"))]
 	pub name: String,
+
 	pub questions: Vec<QuestionsCreateRequestDto>,
+
 	pub banner: Option<String>,
+
 	pub category: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct SubTestsUpdateRequestDto {
 	pub id: String,
+
 	#[validate(length(min = 1, message = "Name must not be empty"))]
 	pub name: String,
+
 	pub questions: Vec<QuestionsUpdateRequestDto>,
+
 	pub banner: Option<String>,
+
 	pub category: String,
 }
 
@@ -40,9 +47,13 @@ pub struct SubTestsItemDto {
 pub struct TestsCreateRequestDto {
 	#[validate(length(min = 1, message = "Name must not be empty"))]
 	pub name: String,
+
 	pub questions: Option<Vec<QuestionsCreateRequestDto>>,
+
 	pub sub_tests: Option<Vec<SubTestsCreateRequestDto>>,
+
 	pub banner: Option<String>,
+
 	pub category: String,
 }
 
@@ -50,9 +61,13 @@ pub struct TestsCreateRequestDto {
 pub struct TestsUpdateRequestDto {
 	#[validate(length(min = 1, message = "Name must not be empty"))]
 	pub name: String,
+
 	pub questions: Option<Vec<QuestionsUpdateRequestDto>>,
+
 	pub sub_tests: Option<Vec<SubTestsUpdateRequestDto>>,
+
 	pub banner: Option<String>,
+
 	pub category: String,
 }
 

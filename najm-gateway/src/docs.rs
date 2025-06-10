@@ -100,26 +100,22 @@ use najm_exam::{
            ResponseSuccessDto<PermissionsItemDto>,
 		   ResponseListSuccessDto<Vec<EventsListItemDto>>,
 		   ResponseSuccessDto<EventsDetailItemDto>,
-		   // Options schemas
 		   OptionsCreateRequestDto,
 		   OptionsUpdateRequestDto,
 		   OptionsItemDto,
 		   ResponseSuccessDto<OptionsItemDto>,
 		   ResponseListSuccessDto<Vec<OptionsItemDto>>,
-		   // Questions schemas
 		   QuestionsCreateRequestDto,
 		   QuestionsUpdateRequestDto,
 		   QuestionsItemDto,
 		   ResponseSuccessDto<QuestionsItemDto>,
 		   ResponseListSuccessDto<Vec<QuestionsItemDto>>,
-		   // Tests schemas
 		   TestsCreateRequestDto,
 		   TestsUpdateRequestDto,
 		   TestsItemDto,
 		   TestsResponseListDto,
 		   ResponseSuccessDto<TestsItemDto>,
 		   ResponseListSuccessDto<Vec<TestsResponseListDto>>,
-		   // Sessions schemas
 		   SessionsCreateRequestDto,
 		   SessionsUpdateRequestDto,
 		   SessionsDetailResponseDto,

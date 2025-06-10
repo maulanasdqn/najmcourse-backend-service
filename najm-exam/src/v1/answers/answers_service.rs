@@ -1,5 +1,8 @@
-use super::{AnswersCreateRequestDto, AnswersRepository};
-use crate::{common_response, success_response, AppState, ResponseSuccessDto};
+use super::{
+	AnswersCreateAkademikRequestDto, AnswersCreatePsikologiRequestDto,
+	AnswersRepository,
+};
+use crate::{AppState, ResponseSuccessDto, common_response, success_response};
 use axum::{http::StatusCode, response::Response};
 
 pub struct AnswersService;
@@ -25,12 +28,48 @@ impl AnswersService {
 		}
 	}
 
-	pub async fn create_answer(
+	pub async fn get_answer_by_test_sub_test_and_user_id(
 		state: &AppState,
-		payload: AnswersCreateRequestDto,
+		test_id: String,
+		sub_test_id: String,
+		user_id: String,
 	) -> Response {
 		let repo = AnswersRepository::new(state);
-		match repo.query_create(payload).await {
+		match repo
+			.query_by_test_sub_test_and_user_id(&test_id, &sub_test_id, &user_id)
+			.await
+		{
+			Ok(answer) => success_response(ResponseSuccessDto { data: answer }),
+			Err(e) => common_response(StatusCode::NOT_FOUND, &e.to_string()),
+		}
+	}
+
+	pub async fn create_answer_akademik(
+		state: &AppState,
+		payload: AnswersCreateAkademikRequestDto,
+	) -> Response {
+		let repo = AnswersRepository::new(state);
+		match repo.query_create_akademik(payload).await {
+			Ok(data) => success_response(ResponseSuccessDto { data }),
+			Err(e) => {
+				let msg = e.to_string();
+				let status = match msg.as_str() {
+					"Test not found" | "Question not found" | "Option not found" => {
+						StatusCode::BAD_REQUEST
+					}
+					_ => StatusCode::INTERNAL_SERVER_ERROR,
+				};
+				return common_response(status, &msg);
+			}
+		}
+	}
+
+	pub async fn create_answer_psikologi(
+		state: &AppState,
+		payload: AnswersCreatePsikologiRequestDto,
+	) -> Response {
+		let repo = AnswersRepository::new(state);
+		match repo.query_create_psikologi(payload).await {
 			Ok(data) => success_response(ResponseSuccessDto { data }),
 			Err(e) => {
 				let msg = e.to_string();

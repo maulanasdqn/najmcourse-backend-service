@@ -1,9 +1,11 @@
-use super::{AnswersCreateRequestDto, AnswersService};
-use crate::{
-	answers::TestsItemAnswersDto, permissions_guard, AppState, MessageResponseDto,
-	PermissionsEnum, ResponseSuccessDto,
+use super::{
+	AnswersCreateAkademikRequestDto, AnswersCreatePsikologiRequestDto, AnswersService,
 };
-use axum::{extract::Path, response::IntoResponse, Extension, Json};
+use crate::{
+	AppState, MessageResponseDto, PermissionsEnum, ResponseSuccessDto,
+	answers::TestsItemAnswersDto, permissions_guard,
+};
+use axum::{Extension, Json, extract::Path, response::IntoResponse};
 
 #[utoipa::path(
 	get,
@@ -66,21 +68,58 @@ pub async fn get_answer_by_test_and_user_id(
 }
 
 #[utoipa::path(
+	get,
+	security(
+		("Bearer" = [])
+	),
+	path = "/v1/answers/detail/{testId}/{subTestId}/{userId}",
+	params(("testId" = String, Path, description = "Test ID"), ("userId" = String, Path, description = "User ID")),
+	responses(
+		(status = 200, description = "Get answer by Test ID and User ID", body = ResponseSuccessDto<TestsItemAnswersDto>)
+	),
+	tag = "Answers"
+)]
+pub async fn get_answer_by_test_sub_test_and_user_id(
+	headers: axum::http::HeaderMap,
+	Extension(state): Extension<AppState>,
+	Path((test_id, sub_test_id, user_id)): Path<(String, String, String)>,
+) -> impl IntoResponse {
+	match permissions_guard(
+		&headers,
+		state.clone(),
+		vec![PermissionsEnum::ReadDetailAnswers],
+	)
+	.await
+	{
+		Ok(_) => {
+			AnswersService::get_answer_by_test_sub_test_and_user_id(
+				&state,
+				test_id,
+				sub_test_id,
+				user_id,
+			)
+			.await
+		}
+		Err(response) => response,
+	}
+}
+
+#[utoipa::path(
 	post,
 	security(
 		("Bearer" = [])
 	),
-	path = "/v1/answers/create",
-	request_body = AnswersCreateRequestDto,
+	path = "/v1/answers/create-akademik",
+	request_body = AnswersCreateAkademikRequestDto,
 	responses(
-		(status = 201, description = "Create new answer", body = ResponseSuccessDto<TestsItemAnswersDto>),
+		(status = 201, description = "Create new answer akademik", body = ResponseSuccessDto<TestsItemAnswersDto>),
 	),
 	tag = "Answers"
 )]
-pub async fn post_create_answer(
+pub async fn post_create_answer_akademik(
 	headers: axum::http::HeaderMap,
 	Extension(state): Extension<AppState>,
-	Json(payload): Json<AnswersCreateRequestDto>,
+	Json(payload): Json<AnswersCreateAkademikRequestDto>,
 ) -> impl IntoResponse {
 	match permissions_guard(
 		&headers,
@@ -89,7 +128,36 @@ pub async fn post_create_answer(
 	)
 	.await
 	{
-		Ok(_) => AnswersService::create_answer(&state, payload).await,
+		Ok(_) => AnswersService::create_answer_akademik(&state, payload).await,
+		Err(response) => response,
+	}
+}
+
+#[utoipa::path(
+	post,
+	security(
+		("Bearer" = [])
+	),
+	path = "/v1/answers/create-psikologi",
+	request_body = AnswersCreatePsikologiRequestDto,
+	responses(
+		(status = 201, description = "Create new answer psikologi", body = ResponseSuccessDto<TestsItemAnswersDto>),
+	),
+	tag = "Answers"
+)]
+pub async fn post_create_answer_psikologi(
+	headers: axum::http::HeaderMap,
+	Extension(state): Extension<AppState>,
+	Json(payload): Json<AnswersCreatePsikologiRequestDto>,
+) -> impl IntoResponse {
+	match permissions_guard(
+		&headers,
+		state.clone(),
+		vec![PermissionsEnum::CreateAnswers],
+	)
+	.await
+	{
+		Ok(_) => AnswersService::create_answer_psikologi(&state, payload).await,
 		Err(response) => response,
 	}
 }

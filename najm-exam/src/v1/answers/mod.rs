@@ -22,6 +22,11 @@ pub fn answers_router() -> Router {
 			"/detail/{test_id}/{user_id}",
 			get(get_answer_by_test_and_user_id),
 		)
-		.route("/create", post(post_create_answer))
+		.route(
+			"/detail/{test_id}/{sub_test_id}/{user_id}",
+			get(get_answer_by_test_sub_test_and_user_id),
+		)
+		.route("/create-akademik", post(post_create_answer_akademik))
+		.route("/create-psikologi", post(post_create_answer_psikologi))
 		.route("/delete/{id}", delete(delete_answer))
 }

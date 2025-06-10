@@ -3,7 +3,7 @@ use utoipa::ToSchema;
 use validator::Validate;
 
 #[derive(Clone, Debug, Serialize, Deserialize, Validate, ToSchema)]
-pub struct AnswersCreateRequestDto {
+pub struct AnswersCreateAkademikRequestDto {
 	#[validate(length(min = 1))]
 	#[schema(example = "uuid")]
 	pub user_id: String,
@@ -11,6 +11,28 @@ pub struct AnswersCreateRequestDto {
 	#[validate(length(min = 1))]
 	#[schema(example = "uuid")]
 	pub test_id: String,
+
+	#[validate(length(min = 1))]
+	#[schema(example = "uuid")]
+	pub session_id: String,
+
+	#[validate(length(min = 1))]
+	pub answers: Vec<AnswerEntryDto>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Validate, ToSchema)]
+pub struct AnswersCreatePsikologiRequestDto {
+	#[validate(length(min = 1))]
+	#[schema(example = "uuid")]
+	pub user_id: String,
+
+	#[validate(length(min = 1))]
+	#[schema(example = "uuid")]
+	pub test_id: String,
+
+	#[validate(length(min = 1))]
+	#[schema(example = "uuid")]
+	pub sub_test_id: String,
 
 	#[validate(length(min = 1))]
 	#[schema(example = "uuid")]
