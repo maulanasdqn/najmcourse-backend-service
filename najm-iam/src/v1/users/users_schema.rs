@@ -49,7 +49,7 @@ impl Default for UsersSchema {
 			religion: None,
 			gender: None,
 			birthdate: None,
-			role: RolesEnum::Admin.thing(),
+			role: RolesEnum::Student.thing(),
 			created_at: get_iso_date(),
 			updated_at: get_iso_date(),
 		}
