@@ -286,7 +286,6 @@ impl<'a> AnswersRepository<'a> {
 		let question_repo = QuestionsRepository::new(&self.state);
 		let now = get_iso_date();
 		for entry in &payload.answers {
-			let id = surrealdb::Uuid::new_v4().to_string();
 			let selected_option: Option<OptionsSchema> = db
 				.select((ResourceEnum::Options.to_string(), &entry.option_id))
 				.await?;
@@ -311,7 +310,7 @@ impl<'a> AnswersRepository<'a> {
 				updated_at: now.clone(),
 			};
 			let _: Option<AnswersSchema> = db
-				.create((ResourceEnum::Answers.to_string(), &id))
+				.create(ResourceEnum::Answers.to_string())
 				.content(answer)
 				.await?;
 		}
@@ -368,7 +367,6 @@ impl<'a> AnswersRepository<'a> {
 		let question_repo = QuestionsRepository::new(&self.state);
 		let now = get_iso_date();
 		for entry in &payload.answers {
-			let id = surrealdb::Uuid::new_v4().to_string();
 			let selected_option: Option<OptionsSchema> = db
 				.select((ResourceEnum::Options.to_string(), &entry.option_id))
 				.await?;
@@ -396,7 +394,7 @@ impl<'a> AnswersRepository<'a> {
 				updated_at: now.clone(),
 			};
 			let _: Option<AnswersSchema> = db
-				.create((ResourceEnum::Answers.to_string(), &id))
+				.create(ResourceEnum::Answers.to_string())
 				.content(answer)
 				.await?;
 		}
