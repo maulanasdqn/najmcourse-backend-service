@@ -1,4 +1,7 @@
+use najm_lib::ResourceEnum;
+use najm_util::make_thing;
 use std::fmt;
+use surrealdb::sql::Thing;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PermissionsEnum {
@@ -143,6 +146,179 @@ impl PermissionsEnum {
 			PermissionsEnum::CreateQuestions => "def12345-6789-0123-4567-cdef12345678",
 			PermissionsEnum::UpdateQuestions => "ef123456-789a-1234-5678-def123456789",
 			PermissionsEnum::DeleteQuestions => "f1234567-89ab-2345-6789-ef123456789a",
+		}
+	}
+
+	pub fn thing(&self) -> Thing {
+		match self {
+			PermissionsEnum::ReadDashboard => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::ReadDashboard.id(),
+			),
+			PermissionsEnum::ReadListUsers => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::ReadListUsers.id(),
+			),
+			PermissionsEnum::ReadDetailUsers => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::ReadDetailUsers.id(),
+			),
+			PermissionsEnum::CreateUsers => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::CreateUsers.id(),
+			),
+			PermissionsEnum::DeleteUsers => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::DeleteUsers.id(),
+			),
+			PermissionsEnum::UpdateUsers => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::UpdateUsers.id(),
+			),
+			PermissionsEnum::ActivateUsers => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::ActivateUsers.id(),
+			),
+			PermissionsEnum::ReadListRoles => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::ReadListRoles.id(),
+			),
+			PermissionsEnum::ReadDetailRoles => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::ReadDetailRoles.id(),
+			),
+			PermissionsEnum::CreateRoles => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::CreateRoles.id(),
+			),
+			PermissionsEnum::DeleteRoles => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::DeleteRoles.id(),
+			),
+			PermissionsEnum::UpdateRoles => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::UpdateRoles.id(),
+			),
+			PermissionsEnum::ReadListPermissions => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::ReadListPermissions.id(),
+			),
+			PermissionsEnum::ReadDetailPermissions => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::ReadDetailPermissions.id(),
+			),
+			PermissionsEnum::CreatePermissions => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::CreatePermissions.id(),
+			),
+			PermissionsEnum::DeletePermissions => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::DeletePermissions.id(),
+			),
+			PermissionsEnum::UpdatePermissions => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::UpdatePermissions.id(),
+			),
+			PermissionsEnum::ReadListSessions => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::ReadListSessions.id(),
+			),
+			PermissionsEnum::ReadDetailSessions => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::ReadDetailSessions.id(),
+			),
+			PermissionsEnum::CreateSessions => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::CreateSessions.id(),
+			),
+			PermissionsEnum::UpdateSessions => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::UpdateSessions.id(),
+			),
+			PermissionsEnum::DeleteSessions => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::DeleteSessions.id(),
+			),
+			PermissionsEnum::ReadListTests => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::ReadListTests.id(),
+			),
+			PermissionsEnum::ReadDetailTests => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::ReadDetailTests.id(),
+			),
+			PermissionsEnum::CreateTests => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::CreateTests.id(),
+			),
+			PermissionsEnum::UpdateTests => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::UpdateTests.id(),
+			),
+			PermissionsEnum::DeleteTests => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::DeleteTests.id(),
+			),
+			PermissionsEnum::ReadListAnswers => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::ReadListAnswers.id(),
+			),
+			PermissionsEnum::ReadDetailAnswers => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::ReadDetailAnswers.id(),
+			),
+			PermissionsEnum::CreateAnswers => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::CreateAnswers.id(),
+			),
+			PermissionsEnum::UpdateAnswers => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::UpdateAnswers.id(),
+			),
+			PermissionsEnum::DeleteAnswers => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::DeleteAnswers.id(),
+			),
+			PermissionsEnum::ReadListOptions => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::ReadListOptions.id(),
+			),
+			PermissionsEnum::ReadDetailOptions => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::ReadDetailOptions.id(),
+			),
+			PermissionsEnum::CreateOptions => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::CreateOptions.id(),
+			),
+			PermissionsEnum::UpdateOptions => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::UpdateOptions.id(),
+			),
+			PermissionsEnum::DeleteOptions => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::DeleteOptions.id(),
+			),
+			PermissionsEnum::ReadListQuestions => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::ReadListQuestions.id(),
+			),
+			PermissionsEnum::ReadDetailQuestions => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::ReadDetailQuestions.id(),
+			),
+			PermissionsEnum::CreateQuestions => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::CreateQuestions.id(),
+			),
+			PermissionsEnum::UpdateQuestions => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::UpdateQuestions.id(),
+			),
+			PermissionsEnum::DeleteQuestions => make_thing(
+				&ResourceEnum::Permissions.to_string(),
+				&PermissionsEnum::DeleteQuestions.id(),
+			),
 		}
 	}
 }

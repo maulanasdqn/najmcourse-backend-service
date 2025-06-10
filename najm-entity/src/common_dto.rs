@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use surrealdb::{
-	engine::{local::Db, remote::ws::Client},
 	Surreal,
+	engine::{local::Db, remote::ws::Client},
 };
 use utoipa::{IntoParams, ToSchema};
 

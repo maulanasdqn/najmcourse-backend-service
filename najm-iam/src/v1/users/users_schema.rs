@@ -1,10 +1,9 @@
-use crate::RolesEnum;
-
 use super::{UsersCreateRequestDto, UsersDetailQueryDto, UsersUpdateRequestDto};
+use crate::{AuthRegisterRequestDto, RolesEnum};
 use najm_lib::{ResourceEnum, hash_password};
 use najm_util::{get_iso_date, make_thing};
 use serde::{Deserialize, Serialize};
-use surrealdb::{Uuid, sql::Thing};
+use surrealdb::sql::Thing;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UsersSchema {
@@ -31,16 +30,10 @@ pub struct UsersSchema {
 
 impl Default for UsersSchema {
 	fn default() -> Self {
-		let user_uuid = &Uuid::new_v4().to_string();
-		let user_table = &ResourceEnum::Users.to_string();
-		let user_thing = make_thing(user_table, user_uuid);
-		let role_uuid = &RolesEnum::Admin.id();
-		let role_table = &ResourceEnum::Roles.to_string();
-		let role_thing = make_thing(role_table, role_uuid);
 		let password = hash_password("password").unwrap();
 
 		Self {
-			id: user_thing,
+			id: ResourceEnum::Users.thing(),
 			fullname: String::new(),
 			email: String::new(),
 			phone_number: String::new(),
@@ -56,7 +49,7 @@ impl Default for UsersSchema {
 			religion: None,
 			gender: None,
 			birthdate: None,
-			role: role_thing,
+			role: RolesEnum::Admin.thing(),
 			created_at: get_iso_date(),
 			updated_at: get_iso_date(),
 		}
@@ -87,8 +80,13 @@ impl UsersSchema {
 	}
 
 	pub fn update(user: UsersUpdateRequestDto, id: String) -> Self {
+		let user_table = &ResourceEnum::Users.to_string();
+		let user_thing = make_thing(user_table, &id);
+		let role_table = &ResourceEnum::Roles.to_string();
+		let role_thing = make_thing(role_table, &user.role_id);
+
 		Self {
-			id: make_thing(&ResourceEnum::Users.to_string(), &id),
+			id: user_thing,
 			fullname: user.fullname,
 			email: user.email,
 			phone_number: user.phone_number,
@@ -97,30 +95,40 @@ impl UsersSchema {
 			birthdate: user.birthdate,
 			avatar: user.avatar,
 			is_deleted: false,
-			role: make_thing(&ResourceEnum::Roles.to_string(), &user.role_id),
+			role: role_thing,
+			updated_at: get_iso_date(),
+			..Default::default()
+		}
+	}
+
+	pub fn register(user: AuthRegisterRequestDto) -> Self {
+		let password = hash_password(&user.password).unwrap();
+		Self {
+			fullname: user.fullname,
+			email: user.email,
+			phone_number: user.phone_number,
+			password,
+			referral_code: user.referral_code,
+			refered_by: user.refered_by,
+			student_type: user.student_type,
+			created_at: get_iso_date(),
 			updated_at: get_iso_date(),
 			..Default::default()
 		}
 	}
 
 	pub fn create(user: UsersCreateRequestDto) -> Self {
+		let role_table = &ResourceEnum::Roles.to_string();
+		let role_thing = make_thing(role_table, &user.role_id);
 		let password = hash_password(&user.password).unwrap();
 		Self {
-			id: make_thing(
-				&ResourceEnum::Users.to_string(),
-				&Uuid::new_v4().to_string(),
-			),
 			fullname: user.fullname,
 			email: user.email,
-			password,
 			phone_number: user.phone_number,
-			gender: None,
-			birthdate: None,
-			avatar: None,
-			referral_code: None,
-			refered_by: None,
+			password,
 			student_type: user.student_type,
-			role: make_thing(&ResourceEnum::Roles.to_string(), &user.role_id),
+			role: role_thing,
+			is_active: user.is_active,
 			created_at: get_iso_date(),
 			updated_at: get_iso_date(),
 			..Default::default()

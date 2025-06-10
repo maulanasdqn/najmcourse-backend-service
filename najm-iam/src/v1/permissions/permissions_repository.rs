@@ -33,7 +33,7 @@ impl<'a> PermissionsRepository<'a> {
 		let transformed_data = raw_result
 			.data
 			.into_iter()
-			.map(|permission| PermissionsSchema::list(&permission))
+			.map(PermissionsSchema::list)
 			.collect();
 
 		Ok(ResponseListSuccessDto {

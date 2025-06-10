@@ -113,7 +113,7 @@ impl UsersService {
 			return common_response(status, &message);
 		}
 		let updated_user = UsersSchema::update(user, user_data.id.id.to_raw());
-		match repo.query_update_user(updated_user).await {
+		match repo.query_update_user_me(updated_user).await {
 			Ok(msg) => common_response(StatusCode::OK, &msg),
 			Err(e) => common_response(StatusCode::BAD_REQUEST, &e.to_string()),
 		}
@@ -129,7 +129,6 @@ impl UsersService {
 		match repo.query_user_by_id(thing_id.id.to_raw()).await {
 			Ok(user) if !user.is_deleted => {
 				let patch = UsersSchema {
-					id: user.id.clone(),
 					is_active: payload.is_active,
 					..UsersSchema::from(user)
 				};
@@ -176,9 +175,8 @@ impl UsersService {
 			}
 		};
 		let patch = UsersSchema {
-			id: user.id.clone(),
 			password: new_password,
-			..Default::default()
+			..UsersSchema::from(user)
 		};
 		match repo.query_update_user(patch).await {
 			Ok(msg) => common_response(StatusCode::OK, &msg),
@@ -188,9 +186,6 @@ impl UsersService {
 
 	pub async fn delete_user(state: &AppState, id: String) -> Response {
 		let repo = UsersRepository::new(state);
-		if repo.query_user_by_id(id.clone()).await.is_err() {
-			return common_response(StatusCode::BAD_REQUEST, "User not found");
-		}
 		match repo.query_delete_user(id).await {
 			Ok(msg) => common_response(StatusCode::OK, &msg),
 			Err(e) => common_response(StatusCode::BAD_REQUEST, &e.to_string()),

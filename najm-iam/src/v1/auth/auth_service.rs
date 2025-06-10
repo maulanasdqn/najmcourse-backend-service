@@ -4,15 +4,13 @@ use super::{
 	AuthResendOtpRequestDto, AuthVerifyEmailRequestDto, TokenDto,
 };
 use crate::{
-	AppState, Env, ResourceEnum, ResponseSuccessDto, RolesEnum, RolesRepository,
-	UsersDetailItemDto, UsersRepository, UsersSchema, common_response,
-	decode_refresh_token, encode_access_token, encode_refresh_token,
-	encode_reset_password_token, extract_email_token, generate_otp, get_iso_date,
-	hash_password, make_thing, send_email, success_response, validate_request,
+	AppState, Env, ResponseSuccessDto, UsersDetailItemDto, UsersRepository,
+	UsersSchema, common_response, decode_refresh_token, encode_access_token,
+	encode_refresh_token, encode_reset_password_token, extract_email_token,
+	generate_otp, hash_password, send_email, success_response, validate_request,
 	verify_password,
 };
 use axum::{http::StatusCode, response::Response};
-use surrealdb::Uuid;
 
 pub struct AuthService;
 
@@ -24,10 +22,8 @@ impl AuthService {
 		if let Err((status, message)) = validate_request(&payload) {
 			return common_response(status, &message);
 		}
-
 		let user_repo = UsersRepository::new(state);
 		let auth_repo = AuthRepository::new(state);
-
 		match user_repo.query_user_by_email(payload.email.clone()).await {
 			Ok(user) => {
 				let is_password_correct =
@@ -89,14 +85,6 @@ impl AuthService {
 		}
 		let user_repo = UsersRepository::new(state);
 		let auth_repo = AuthRepository::new(state);
-		let role_repo = RolesRepository::new(state);
-		let role = match role_repo
-			.query_role_by_name(RolesEnum::Student.to_string())
-			.await
-		{
-			Ok(role) => role,
-			Err(_) => return common_response(StatusCode::BAD_REQUEST, "Role Not Found"),
-		};
 		if user_repo
 			.query_user_by_email(payload.email.clone())
 			.await
@@ -104,21 +92,7 @@ impl AuthService {
 		{
 			return common_response(StatusCode::BAD_REQUEST, "User already exists");
 		}
-		let hashed_password = match hash_password(&payload.password) {
-			Ok(hash) => hash,
-			Err(_) => {
-				return common_response(
-					StatusCode::INTERNAL_SERVER_ERROR,
-					"Failed to hash password",
-				);
-			}
-		};
-		let new_user = AuthRegisterRequestDto {
-			email: payload.email,
-			password: hashed_password,
-			fullname: payload.fullname,
-			phone_number: payload.phone_number,
-		};
+		let new_user = AuthRegisterRequestDto::from(payload);
 		let otp = generate_otp::OtpManager::generate_otp();
 		match auth_repo
 			.query_store_otp(new_user.email.clone(), otp.clone())
@@ -137,23 +111,8 @@ impl AuthService {
 				return common_response(StatusCode::INTERNAL_SERVER_ERROR, &err.to_string());
 			}
 		}
-		let role_thing = make_thing(&ResourceEnum::Roles.to_string(), &role.id);
-		let user_thing = make_thing(
-			&ResourceEnum::Users.to_string(),
-			&Uuid::new_v4().to_string(),
-		);
 		match user_repo
-			.query_create_user(UsersSchema {
-				id: user_thing,
-				email: new_user.email.clone(),
-				fullname: new_user.fullname.clone(),
-				password: new_user.password.clone(),
-				phone_number: new_user.phone_number.clone(),
-				created_at: get_iso_date(),
-				updated_at: get_iso_date(),
-				role: role_thing,
-				..Default::default()
-			})
+			.query_create_user(UsersSchema::register(new_user))
 			.await
 		{
 			Ok(msg) => common_response(StatusCode::CREATED, &msg),

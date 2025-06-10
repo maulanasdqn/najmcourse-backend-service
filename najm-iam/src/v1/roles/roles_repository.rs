@@ -7,8 +7,6 @@ use crate::{
 };
 use anyhow::{Result, bail};
 use najm_util::{DetailQueryBuilder, QueryListBuilder};
-use surrealdb::Uuid;
-use surrealdb::sql::Thing;
 
 pub struct RolesRepository<'a> {
 	state: &'a AppState,
@@ -31,11 +29,7 @@ impl<'a> RolesRepository<'a> {
 		.search_field("name")
 		.build()
 		.await?;
-		let data = result
-			.data
-			.into_iter()
-			.map(|role| RolesSchema::list(&role))
-			.collect();
+		let data = result.data.into_iter().map(RolesSchema::list).collect();
 		Ok(ResponseListSuccessDto {
 			data,
 			meta: result.meta,
@@ -85,22 +79,9 @@ impl<'a> RolesRepository<'a> {
 		payload: RolesRequestCreateDto,
 	) -> Result<String> {
 		let db = &self.state.surrealdb_ws;
-		let role_id = Uuid::new_v4().to_string();
-		let permission_things: Vec<Thing> = payload
-			.permissions
-			.iter()
-			.map(|id| make_thing(&ResourceEnum::Permissions.to_string(), id))
-			.collect();
-		let role = RolesSchema {
-			id: make_thing(&ResourceEnum::Roles.to_string(), &role_id),
-			name: payload.name,
-			is_deleted: false,
-			permissions: permission_things,
-			created_at: Some(crate::get_iso_date()),
-			updated_at: Some(crate::get_iso_date()),
-		};
+		let role = RolesSchema::create(payload);
 		let _: Option<RolesSchema> = db
-			.create((&ResourceEnum::Roles.to_string(), role_id))
+			.create(&ResourceEnum::Roles.to_string())
 			.content(role)
 			.await?;
 		Ok("Role with permissions created successfully".into())

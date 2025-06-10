@@ -2,11 +2,11 @@ use super::{
 	RolesDetailItemDto, RolesDetailQueryDto, RolesListItemDto, RolesRequestCreateDto,
 	RolesRequestUpdateDto,
 };
-use crate::{ResourceEnum, make_thing};
+use crate::{PermissionsEnum, ResourceEnum, make_thing};
 use najm_util::get_iso_date;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use surrealdb::{Uuid, sql::Thing};
+use surrealdb::sql::Thing;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RolesSchema {
@@ -21,18 +21,12 @@ pub struct RolesSchema {
 impl Default for RolesSchema {
 	fn default() -> Self {
 		RolesSchema {
-			id: make_thing(
-				&ResourceEnum::Roles.to_string(),
-				&Uuid::new_v4().to_string(),
-			),
-			permissions: vec![make_thing(
-				&ResourceEnum::Permissions.to_string(),
-				&Uuid::new_v4().to_string(),
-			)],
+			id: ResourceEnum::Roles.thing(),
+			permissions: vec![PermissionsEnum::ReadDashboard.thing()],
 			name: String::new(),
 			is_deleted: false,
-			created_at: None,
-			updated_at: None,
+			created_at: Some(get_iso_date()),
+			updated_at: Some(get_iso_date()),
 		}
 	}
 }
@@ -62,15 +56,9 @@ impl RolesSchema {
 			.map(|id| make_thing(&ResourceEnum::Permissions.to_string(), &id))
 			.collect();
 		Self {
-			id: make_thing(
-				&ResourceEnum::Roles.to_string(),
-				&Uuid::new_v4().to_string(),
-			),
 			name: dto.name,
 			permissions,
-			is_deleted: false,
-			created_at: Some(get_iso_date()),
-			updated_at: Some(get_iso_date()),
+			..Default::default()
 		}
 	}
 
@@ -79,6 +67,8 @@ impl RolesSchema {
 		id: String,
 		existing: RolesDetailItemDto,
 	) -> Self {
+		let role_table = &ResourceEnum::Roles.to_string();
+		let role_thing = make_thing(role_table, &id);
 		let name = dto.name.unwrap_or(existing.name);
 		let permissions: Vec<Thing> =
 			match (dto.permissions, dto.overwrite.unwrap_or(false)) {
@@ -104,16 +94,16 @@ impl RolesSchema {
 					.collect(),
 			};
 		Self {
-			id: make_thing(&ResourceEnum::Roles.to_string(), &id),
+			id: role_thing,
 			name,
 			permissions,
 			is_deleted: existing.is_deleted,
 			created_at: existing.created_at,
-			updated_at: Some(get_iso_date()),
+			..Default::default()
 		}
 	}
 
-	pub fn list(&self) -> RolesListItemDto {
+	pub fn list(self) -> RolesListItemDto {
 		RolesListItemDto {
 			id: self.id.id.to_raw(),
 			name: self.name.clone(),

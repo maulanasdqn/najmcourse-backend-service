@@ -1,6 +1,7 @@
-use crate::{ResourceEnum, make_thing};
+use crate::{PermissionsRequestDto, ResourceEnum};
+use najm_util::make_thing;
 use serde::{Deserialize, Serialize};
-use surrealdb::{Uuid, sql::Thing};
+use surrealdb::sql::Thing;
 
 use super::PermissionsItemDto;
 
@@ -16,10 +17,7 @@ pub struct PermissionsSchema {
 impl Default for PermissionsSchema {
 	fn default() -> Self {
 		PermissionsSchema {
-			id: make_thing(
-				&ResourceEnum::Permissions.to_string(),
-				&Uuid::new_v4().to_string(),
-			),
+			id: ResourceEnum::Permissions.thing(),
 			name: String::new(),
 			is_deleted: false,
 			created_at: None,
@@ -29,12 +27,27 @@ impl Default for PermissionsSchema {
 }
 
 impl PermissionsSchema {
-	pub fn list(&self) -> PermissionsItemDto {
+	pub fn list(self) -> PermissionsItemDto {
 		PermissionsItemDto {
 			id: self.id.id.to_raw(),
 			name: self.name.clone(),
 			created_at: self.created_at.clone(),
 			updated_at: self.updated_at.clone(),
+		}
+	}
+
+	pub fn create(dto: PermissionsRequestDto) -> Self {
+		Self {
+			name: dto.name,
+			..Default::default()
+		}
+	}
+
+	pub fn update(dto: PermissionsRequestDto, id: String) -> Self {
+		Self {
+			name: dto.name,
+			id: make_thing(&ResourceEnum::Permissions.to_string(), &id),
+			..Default::default()
 		}
 	}
 }

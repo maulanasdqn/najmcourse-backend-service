@@ -1,28 +1,12 @@
 use super::{UsersDetailQueryDto, UsersListItemDto, UsersListQueryDto, UsersSchema};
 use crate::{
-	AppState, MetaRequestDto, ResourceEnum, ResponseListSuccessDto, get_id, make_thing,
+	AppState, MetaRequestDto, ResourceEnum, ResponseListSuccessDto, get_id,
 };
 use anyhow::{Result, bail};
 use najm_util::{DetailQueryBuilder, QueryListBuilder};
-use surrealdb::{Surreal, engine::remote::ws::Client};
 
 pub struct UsersRepository<'a> {
 	state: &'a AppState,
-}
-
-pub async fn update_partial_schema(
-	db: &Surreal<Client>,
-	table: &str,
-	id: &str,
-	patch: UsersSchema,
-) -> Result<String> {
-	let thing = make_thing(table, id);
-	let record_key = get_id(&thing)?;
-	let result: Option<UsersSchema> = db.update(record_key).merge(patch).await?;
-	match result {
-		Some(_) => Ok("Success update".into()),
-		None => bail!("Failed to update"),
-	}
 }
 
 impl<'a> UsersRepository<'a> {
@@ -133,6 +117,32 @@ impl<'a> UsersRepository<'a> {
 			password: existing.password,
 			created_at: existing.created_at,
 			role: role_thing,
+			..data.clone()
+		};
+		let record: Option<UsersSchema> = db.update(record_key).merge(merged).await?;
+		match record {
+			Some(_) => Ok("Success update user".into()),
+			None => bail!("Failed to update user"),
+		}
+	}
+
+	pub async fn query_update_user_me(&self, data: UsersSchema) -> Result<String> {
+		let db = &self.state.surrealdb_ws;
+		let record_key = get_id(&data.id)?;
+		let existing = self.query_user_by_id(data.id.id.to_raw()).await?;
+		if existing.is_deleted {
+			bail!("User already deleted");
+		}
+		let role_thing = if data.role == existing.role.id {
+			existing.role.id.clone()
+		} else {
+			data.role.clone()
+		};
+		let merged = UsersSchema {
+			password: existing.password,
+			created_at: existing.created_at,
+			role: role_thing,
+			is_profile_completed: true,
 			..data.clone()
 		};
 		let record: Option<UsersSchema> = db.update(record_key).merge(merged).await?;

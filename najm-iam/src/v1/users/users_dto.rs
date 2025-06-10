@@ -165,6 +165,23 @@ pub struct UsersListItemDto {
 	pub updated_at: String,
 }
 
+impl UsersListItemDto {
+	pub fn from(dto: &UsersListQueryDto) -> Self {
+		Self {
+			id: dto.id.id.to_raw().clone(),
+			fullname: dto.fullname.clone(),
+			email: dto.email.clone(),
+			phone_number: dto.phone_number.clone(),
+			avatar: dto.avatar.clone(),
+			student_type: dto.student_type.clone(),
+			role: dto.role.name.clone(),
+			is_active: dto.is_active.clone(),
+			created_at: dto.created_at.clone(),
+			updated_at: dto.updated_at.clone(),
+		}
+	}
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UsersListQueryDto {
 	pub id: Thing,

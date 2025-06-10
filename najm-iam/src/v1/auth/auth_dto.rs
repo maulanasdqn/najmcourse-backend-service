@@ -1,4 +1,5 @@
 use crate::UsersDetailItemDto;
+use najm_lib::hash_password;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use validator::{Validate, ValidationError};
@@ -40,11 +41,15 @@ pub struct TokenDto {
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct AuthRegisterRequestDto {
+	#[validate(length(min = 2, message = "Fullname at least have 2 character"))]
+	pub fullname: String,
+
 	#[validate(
 		length(min = 1, message = "Email cannot be empty"),
 		email(message = "Email not valid")
 	)]
 	pub email: String,
+
 	#[validate(length(
 		min = 8,
 		message = "Password must have at least 8 characters"
@@ -54,10 +59,26 @@ pub struct AuthRegisterRequestDto {
 		message = "Password must include uppercase, lowercase, number, and special character"
 	))]
 	pub password: String,
-	#[validate(length(min = 2, message = "Fullname at least have 2 character"))]
-	pub fullname: String,
+
 	#[validate(length(min = 1, message = "Student type is required"))]
 	pub phone_number: String,
+
+	#[validate(length(max = 6, message = "Referral code must be 6 characters"))]
+	pub referral_code: Option<String>,
+
+	pub refered_by: Option<String>,
+
+	#[validate(length(min = 1, message = "Student Type is required"))]
+	pub student_type: Option<String>,
+}
+
+impl AuthRegisterRequestDto {
+	pub fn from(self) -> Self {
+		Self {
+			password: hash_password(&self.password).unwrap(),
+			..self
+		}
+	}
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
