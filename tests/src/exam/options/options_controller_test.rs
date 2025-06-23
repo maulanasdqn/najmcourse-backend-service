@@ -1,11 +1,9 @@
 use crate::{
-	create_mock_app_state,
-	v1::options::{options_router, OptionsCreateRequestDto, OptionsUpdateRequestDto},
-	AppState, PermissionsEnum,
+	AppState, OptionsCreateRequestDto, OptionsUpdateRequestDto, PermissionsEnum,
+	authorized, create_mock_app_state, options_router,
 };
 use axum::{Extension, Router};
 use axum_test::TestServer;
-use najm_course_utils::authorized;
 use surrealdb::Uuid;
 
 fn create_test_app(state: AppState) -> TestServer {

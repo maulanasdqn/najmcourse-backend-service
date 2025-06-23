@@ -92,9 +92,7 @@ impl<'a> AnswersRepository<'a> {
 				updated_at: question.updated_at,
 			});
 		}
-
 		let test_response = test.clone().test;
-
 		let total_points: f32 = questions_dto
 			.iter()
 			.flat_map(|q| &q.options)
@@ -104,7 +102,6 @@ impl<'a> AnswersRepository<'a> {
 		let score = total_points as f64 * test.multiplier;
 		let weight = SessionWeightEnum::to_float(&test.weight);
 		let score_total = (weight * score).round() as i32;
-
 		Ok(TestsItemAnswersDto {
 			id: answer_id,
 			name: test_response.name,
@@ -126,7 +123,6 @@ impl<'a> AnswersRepository<'a> {
 		let question_repo = QuestionsRepository::new(self.state);
 		let session_repo = SessionsRepository::new(self.state);
 		let test_repo = TestsRepository::new(self.state);
-
 		let session = session_repo
 			.query_session_by_id(session_id.to_string())
 			.await?;
@@ -135,14 +131,12 @@ impl<'a> AnswersRepository<'a> {
 			.into_iter()
 			.find(|t| t.test.id == test_id)
 			.ok_or_else(|| Error::msg("Test not found in session"))?;
-
 		let test_detail = test_repo.query_test_by_id(test_id).await?;
 		let sub_test = test_detail
 			.sub_tests
 			.as_ref()
 			.and_then(|sub_tests| sub_tests.iter().find(|st| st.id == sub_test_id))
 			.ok_or_else(|| Error::msg("Sub test not found in test"))?;
-
 		let answers: Vec<AnswersSchema> = db
 			.query(&format!(
 				"SELECT * FROM app_answers WHERE test = app_tests:⟨{}⟩ AND sub_test = app_sub_tests:⟨{}⟩ AND user = app_users:⟨{}⟩ AND session = app_sessions:⟨{}⟩ AND is_deleted = false",
@@ -150,7 +144,6 @@ impl<'a> AnswersRepository<'a> {
 			))
 			.await?
 			.take(0)?;
-
 		let answer_id = answers
 			.get(0)
 			.ok_or_else(|| Error::msg("No answers found"))?
@@ -158,7 +151,6 @@ impl<'a> AnswersRepository<'a> {
 			.id
 			.to_raw()
 			.clone();
-
 		let mut questions_dto = Vec::new();
 		for answer in &answers {
 			let question_id = answer.question.id.to_raw();
@@ -189,7 +181,6 @@ impl<'a> AnswersRepository<'a> {
 				updated_at: question.updated_at,
 			});
 		}
-
 		let score_total = {
 			let total_points: f32 = questions_dto
 				.iter()
@@ -201,7 +192,6 @@ impl<'a> AnswersRepository<'a> {
 			let weight = SessionWeightEnum::to_float(&test.weight);
 			(weight * score).round() as i32
 		};
-
 		Ok(TestsItemAnswersDto {
 			id: answer_id,
 			name: sub_test.name.clone(),
@@ -284,6 +274,7 @@ impl<'a> AnswersRepository<'a> {
 		let db = &self.state.surrealdb_ws;
 		let test_repo = TestsRepository::new(&self.state);
 		let question_repo = QuestionsRepository::new(&self.state);
+		let session_repo = SessionsRepository::new(&self.state);
 		let now = get_iso_date();
 		for entry in &payload.answers {
 			let selected_option: Option<OptionsSchema> = db
@@ -315,6 +306,14 @@ impl<'a> AnswersRepository<'a> {
 				.await?;
 		}
 		let test_data = test_repo.query_test_by_id(&payload.test_id).await?;
+		let session = session_repo
+			.query_session_by_id(payload.session_id.clone())
+			.await?;
+		let test = session
+			.tests
+			.into_iter()
+			.find(|t| t.test.id == payload.test_id)
+			.ok_or_else(|| Error::msg("Test not found in session"))?;
 		let answers: Vec<AnswersSchema> = db
 			.query(&format!(
 				"SELECT * FROM app_answers WHERE session = app_sessions:⟨{}⟩ AND test = app_tests:⟨{}⟩ AND user = app_users:⟨{}⟩ AND is_deleted = false",
@@ -332,25 +331,46 @@ impl<'a> AnswersRepository<'a> {
 		let mut questions_dto = vec![];
 		for answer in &answers {
 			let question_id = answer.question.id.to_raw();
-			let _selected_option_id = answer.option.id.to_raw();
+			let selected_option_id = answer.option.id.to_raw();
 			let question = question_repo.query_question_by_id(&question_id).await?;
-			let _options = question.options.clone();
-			let options_converted = vec![];
+			let options_dto = question
+				.options
+				.iter()
+				.map(|opt| OptionsItemAnswersDto {
+					id: opt.id.clone(),
+					label: opt.label.clone(),
+					is_user_selected: opt.id == selected_option_id,
+					points: opt.points,
+					is_correct: opt.is_correct.unwrap_or(false),
+					image_url: opt.image_url.clone(),
+					created_at: opt.created_at.clone(),
+					updated_at: opt.updated_at.clone(),
+				})
+				.collect();
 			questions_dto.push(QuestionsItemAnswersDto {
 				id: question.id,
 				question: question.question,
 				discussion: question.discussion,
 				question_image_url: question.question_image_url,
 				discussion_image_url: question.discussion_image_url,
-				options: options_converted,
+				options: options_dto,
 				created_at: question.created_at,
 				updated_at: question.updated_at,
 			});
 		}
+		let total_points: f32 = questions_dto
+			.iter()
+			.flat_map(|q| &q.options)
+			.filter(|o| o.is_user_selected)
+			.map(|o| o.points.unwrap_or(0.0))
+			.sum();
+		let score = total_points as f64 * test.multiplier;
+		let weight = SessionWeightEnum::to_float(&test.weight);
+		let score_total = (weight * score).round() as i32;
 		Ok(TestsItemAnswersDto {
 			id: answer_id,
 			name: test_data.name,
-			score: 0,
+			score: score_total,
 			questions: questions_dto,
 			created_at: test_data.created_at,
 			updated_at: test_data.updated_at,
@@ -365,6 +385,7 @@ impl<'a> AnswersRepository<'a> {
 		let db = &self.state.surrealdb_ws;
 		let test_repo = TestsRepository::new(&self.state);
 		let question_repo = QuestionsRepository::new(&self.state);
+		let session_repo = SessionsRepository::new(&self.state);
 		let now = get_iso_date();
 		for entry in &payload.answers {
 			let selected_option: Option<OptionsSchema> = db
@@ -399,6 +420,19 @@ impl<'a> AnswersRepository<'a> {
 				.await?;
 		}
 		let test_data = test_repo.query_test_by_id(&payload.test_id).await?;
+		let session = session_repo
+			.query_session_by_id(payload.session_id.clone())
+			.await?;
+		let test = session
+			.tests
+			.into_iter()
+			.find(|t| t.test.id == payload.test_id)
+			.ok_or_else(|| Error::msg("Test not found in session"))?;
+		let sub_test = test_data
+			.sub_tests
+			.as_ref()
+			.and_then(|sub_tests| sub_tests.iter().find(|st| st.id == payload.sub_test_id))
+			.ok_or_else(|| Error::msg("Sub test not found in test"))?;
 		let answers: Vec<AnswersSchema> = db
 			.query(&format!(
 				"SELECT * FROM app_answers WHERE session = app_sessions:⟨{}⟩ AND test = app_tests:⟨{}⟩ AND user = app_users:⟨{}⟩ AND is_deleted = false",
@@ -416,28 +450,49 @@ impl<'a> AnswersRepository<'a> {
 		let mut questions_dto = vec![];
 		for answer in &answers {
 			let question_id = answer.question.id.to_raw();
-			let _selected_option_id = answer.option.id.to_raw();
+			let selected_option_id = answer.option.id.to_raw();
 			let question = question_repo.query_question_by_id(&question_id).await?;
-			let _options = question.options.clone();
-			let options_converted = vec![];
+			let options_dto = question
+				.options
+				.iter()
+				.map(|opt| OptionsItemAnswersDto {
+					id: opt.id.clone(),
+					label: opt.label.clone(),
+					is_user_selected: opt.id == selected_option_id,
+					points: opt.points,
+					is_correct: opt.is_correct.unwrap_or(false),
+					image_url: opt.image_url.clone(),
+					created_at: opt.created_at.clone(),
+					updated_at: opt.updated_at.clone(),
+				})
+				.collect();
 			questions_dto.push(QuestionsItemAnswersDto {
 				id: question.id,
 				question: question.question,
 				discussion: question.discussion,
 				question_image_url: question.question_image_url,
 				discussion_image_url: question.discussion_image_url,
-				options: options_converted,
+				options: options_dto,
 				created_at: question.created_at,
 				updated_at: question.updated_at,
 			});
 		}
+		let total_points: f32 = questions_dto
+			.iter()
+			.flat_map(|q| &q.options)
+			.filter(|o| o.is_user_selected)
+			.map(|o| o.points.unwrap_or(0.0))
+			.sum();
+		let score = total_points as f64 * test.multiplier;
+		let weight = SessionWeightEnum::to_float(&test.weight);
+		let score_total = (weight * score).round() as i32;
 		Ok(TestsItemAnswersDto {
 			id: answer_id,
-			name: test_data.name,
-			score: 0,
+			name: sub_test.name.clone(),
+			score: score_total,
 			questions: questions_dto,
-			created_at: test_data.created_at,
-			updated_at: test_data.updated_at,
+			created_at: sub_test.created_at.clone(),
+			updated_at: sub_test.updated_at.clone(),
 		})
 	}
 

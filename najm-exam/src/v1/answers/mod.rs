@@ -9,6 +9,9 @@ pub mod answers_repository;
 pub mod answers_schema;
 pub mod answers_service;
 
+#[cfg(test)]
+pub mod score_formula_test;
+
 pub use answers_controller::*;
 pub use answers_dto::*;
 pub use answers_repository::*;

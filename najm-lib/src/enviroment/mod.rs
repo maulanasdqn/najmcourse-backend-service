@@ -24,6 +24,8 @@ pub struct Env {
 
 impl Env {
 	pub fn new() -> Self {
+		let _ = dotenvy::dotenv();
+
 		Self {
 			port: env::var("PORT")
 				.unwrap_or_else(|_| "3000".to_string())

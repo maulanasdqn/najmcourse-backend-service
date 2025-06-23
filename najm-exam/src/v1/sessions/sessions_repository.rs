@@ -5,25 +5,9 @@ use super::{
 use anyhow::{Result, bail};
 use najm_lib::{AppState, MetaRequestDto, ResourceEnum, ResponseListSuccessDto};
 use najm_util::{DetailQueryBuilder, QueryListBuilder, get_id, get_iso_date};
-use surrealdb::{Surreal, engine::remote::ws::Client};
 
 pub struct SessionsRepository<'a> {
 	state: &'a AppState,
-}
-
-pub async fn update_partial_schema(
-	db: &Surreal<Client>,
-	table: &str,
-	id: &str,
-	patch: SessionsSchema,
-) -> Result<String> {
-	let thing = najm_util::make_thing(table, id);
-	let record_key = get_id(&thing)?;
-	let result: Option<SessionsSchema> = db.update(record_key).merge(patch).await?;
-	match result {
-		Some(_) => Ok("Success update".into()),
-		None => bail!("Failed to update"),
-	}
 }
 
 impl<'a> SessionsRepository<'a> {

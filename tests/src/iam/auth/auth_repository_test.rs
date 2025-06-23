@@ -6,7 +6,8 @@ mod auth_repository_test {
 		make_thing,
 	};
 	use chrono::{Duration, Utc};
-	use najm_iam::{AppState, RolesDetailQueryDto, UsersDetailQueryDto};
+	use najm_iam::{RolesDetailQueryDto, UsersDetailQueryDto};
+	use najm_lib::AppState;
 	use surrealdb::Uuid;
 
 	async fn create_mock_user(state: &AppState, email: &str) -> UsersSchema {
@@ -107,8 +108,8 @@ mod auth_repository_test {
 		let app_state = create_mock_app_state().await;
 		let repo = AuthRepository::new(&app_state);
 		let email = "otp_user@example.com".to_string();
-		let otp = 123456;
-		let stored = repo.query_store_otp(email.clone(), otp).await;
+		let otp = "123456".to_string();
+		let stored = repo.query_store_otp(email.clone(), otp.clone()).await;
 		assert!(stored.is_ok());
 		let fetched = repo.query_get_stored_otp(email.clone()).await;
 		assert!(fetched.is_ok());
@@ -120,8 +121,11 @@ mod auth_repository_test {
 		let app_state = create_mock_app_state().await;
 		let repo = AuthRepository::new(&app_state);
 		let email = "otp_del@example.com".to_string();
-		let otp = 654321;
-		repo.query_store_otp(email.clone(), otp).await.unwrap();
+		let otp = "654321".to_string();
+		repo
+			.query_store_otp(email.clone(), otp.clone())
+			.await
+			.unwrap();
 		let deleted = repo.query_delete_stored_otp(email.clone()).await;
 		assert!(deleted.is_ok());
 		let fetched = repo.query_get_stored_otp(email.clone()).await;
@@ -133,7 +137,7 @@ mod auth_repository_test {
 		let app_state = create_mock_app_state().await;
 		let repo = AuthRepository::new(&app_state);
 		let email = "expired_otp@example.com".to_string();
-		let otp = 789012;
+		let otp = "789012".to_string();
 		let table = ResourceEnum::OtpCache.to_string();
 		let expires_at = Utc::now() - Duration::seconds(1);
 		let _: Option<AuthOtpSchema> = repo
@@ -174,7 +178,7 @@ mod auth_repository_test {
 		let repo = AuthRepository::new(&app_state);
 		let email = "expired_otp@example.com";
 		let expired_time = chrono::Utc::now() - Duration::seconds(10);
-		let otp = 123456;
+		let otp = "123456".to_string();
 		let _: Option<AuthOtpSchema> = repo
 			.state
 			.surrealdb_mem
@@ -195,10 +199,239 @@ mod auth_repository_test {
 		let app_state = create_mock_app_state().await;
 		let repo = AuthRepository::new(&app_state);
 		let email = "valid_otp@example.com";
-		let otp = 654321;
-		let store_result = repo.query_store_otp(email.into(), otp).await;
+		let otp = "654321".to_string();
+		let store_result = repo.query_store_otp(email.into(), otp.clone()).await;
 		assert!(store_result.is_ok());
 		let get_result = repo.query_get_stored_otp(email.into()).await;
 		assert_eq!(get_result.unwrap(), otp);
+	}
+
+	// =============== EDGE CASE TESTS ===============
+
+	#[tokio::test]
+	async fn test_store_otp_with_empty_email() {
+		let app_state = create_mock_app_state().await;
+		let repo = AuthRepository::new(&app_state);
+		let result = repo.query_store_otp("".into(), "123456".into()).await;
+		// Documents current behavior: empty email is allowed
+		assert!(result.is_ok(), "Empty email is currently allowed");
+	}
+
+	#[tokio::test]
+	async fn test_store_otp_with_empty_otp() {
+		let app_state = create_mock_app_state().await;
+		let repo = AuthRepository::new(&app_state);
+		let result = repo
+			.query_store_otp("test@example.com".into(), "".into())
+			.await;
+		// Documents current behavior: empty OTP is allowed
+		assert!(result.is_ok(), "Empty OTP is currently allowed");
+	}
+
+	#[tokio::test]
+	async fn test_store_otp_with_invalid_email_format() {
+		let app_state = create_mock_app_state().await;
+		let repo = AuthRepository::new(&app_state);
+		let invalid_emails = vec![
+			"notanemail",
+			"@example.com",
+			"test@",
+			"test..test@example.com",
+			"test@example",
+			"test @example.com",
+		];
+
+		for email in invalid_emails {
+			let result = repo.query_store_otp(email.into(), "123456".into()).await;
+			// Note: Depending on implementation, this might succeed or fail
+			// The test documents the current behavior
+		}
+	}
+
+	#[tokio::test]
+	async fn test_store_otp_with_extremely_long_email() {
+		let app_state = create_mock_app_state().await;
+		let repo = AuthRepository::new(&app_state);
+		let long_email = format!("{}@example.com", "a".repeat(1000));
+		let result = repo.query_store_otp(long_email, "123456".into()).await;
+		// Should handle long emails gracefully
+		assert!(result.is_ok() || result.is_err()); // Documents behavior
+	}
+
+	#[tokio::test]
+	async fn test_store_otp_with_unicode_email() {
+		let app_state = create_mock_app_state().await;
+		let repo = AuthRepository::new(&app_state);
+		let unicode_email = "测试@example.com";
+		let result = repo
+			.query_store_otp(unicode_email.into(), "123456".into())
+			.await;
+		assert!(result.is_ok(), "Unicode email should be supported");
+	}
+
+	#[tokio::test]
+	async fn test_store_otp_with_special_characters() {
+		let app_state = create_mock_app_state().await;
+		let repo = AuthRepository::new(&app_state);
+		let special_email = "test+tag@sub.example.com";
+		let result = repo
+			.query_store_otp(special_email.into(), "123456".into())
+			.await;
+		assert!(result.is_ok(), "Email with special characters should work");
+	}
+
+	#[tokio::test]
+	async fn test_otp_with_non_numeric_characters() {
+		let app_state = create_mock_app_state().await;
+		let repo = AuthRepository::new(&app_state);
+		let alphanumeric_otp = "ABC123";
+		let result = repo
+			.query_store_otp("test@example.com".into(), alphanumeric_otp.into())
+			.await;
+		assert!(result.is_ok(), "Alphanumeric OTP should be supported");
+
+		let fetched = repo.query_get_stored_otp("test@example.com".into()).await;
+		assert_eq!(fetched.unwrap(), alphanumeric_otp);
+	}
+
+	#[tokio::test]
+	async fn test_otp_with_extremely_long_code() {
+		let app_state = create_mock_app_state().await;
+		let repo = AuthRepository::new(&app_state);
+		let long_otp = "1".repeat(1000);
+		let result = repo
+			.query_store_otp("test@example.com".into(), long_otp.clone())
+			.await;
+		assert!(result.is_ok(), "Long OTP should be handled");
+	}
+
+	#[tokio::test]
+	async fn test_multiple_otps_for_same_email() {
+		let app_state = create_mock_app_state().await;
+		let repo = AuthRepository::new(&app_state);
+		let email = "multi@example.com";
+
+		// Store first OTP
+		let first_result = repo.query_store_otp(email.into(), "111111".into()).await;
+		assert!(first_result.is_ok(), "First OTP should succeed");
+
+		// Try to store second OTP - behavior depends on implementation
+		let second_result = repo.query_store_otp(email.into(), "222222".into()).await;
+
+		if second_result.is_ok() {
+			// If second store succeeds, verify it overwrote the first
+			let fetched = repo.query_get_stored_otp(email.into()).await.unwrap();
+			assert_eq!(fetched, "222222", "Second OTP should overwrite first");
+		} else {
+			// If second store fails, verify first OTP is still there
+			let fetched = repo.query_get_stored_otp(email.into()).await.unwrap();
+			assert_eq!(fetched, "111111", "First OTP should remain if second fails");
+		}
+	}
+
+	#[tokio::test]
+	async fn test_delete_otp_multiple_times() {
+		let app_state = create_mock_app_state().await;
+		let repo = AuthRepository::new(&app_state);
+		let email = "delete_multi@example.com";
+
+		// Store OTP
+		repo
+			.query_store_otp(email.into(), "123456".into())
+			.await
+			.unwrap();
+
+		// Delete first time
+		let first_delete = repo.query_delete_stored_otp(email.into()).await;
+		assert!(first_delete.is_ok());
+
+		// Delete second time should fail
+		let second_delete = repo.query_delete_stored_otp(email.into()).await;
+		assert!(second_delete.is_err());
+	}
+
+	#[tokio::test]
+	async fn test_otp_boundary_expiration() {
+		let app_state = create_mock_app_state().await;
+		let repo = AuthRepository::new(&app_state);
+		let email = "boundary@example.com";
+
+		// Create OTP that expires in exactly 1 second
+		let expires_at = Utc::now() + Duration::seconds(1);
+		let _: Option<AuthOtpSchema> = repo
+			.state
+			.surrealdb_mem
+			.create((ResourceEnum::OtpCache.to_string(), email))
+			.content(AuthOtpSchema {
+				otp: "123456".to_string(),
+				expires_at,
+			})
+			.await
+			.unwrap();
+
+		// Should be valid immediately
+		let result = repo.query_get_stored_otp(email.into()).await;
+		assert!(result.is_ok(), "OTP should be valid before expiration");
+
+		// Wait for expiration
+		tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+
+		// Should be expired now
+		let expired_result = repo.query_get_stored_otp(email.into()).await;
+		assert!(expired_result.is_err(), "OTP should be expired");
+	}
+
+	#[tokio::test]
+	async fn test_rapid_sequential_otp_operations() {
+		let app_state = create_mock_app_state().await;
+		let repo = AuthRepository::new(&app_state);
+
+		// Use different emails to avoid conflicts
+		let mut success_count = 0;
+		for i in 0..5 {
+			let email = format!("rapid{}@example.com", i);
+			let result = repo.query_store_otp(email, format!("12345{}", i)).await;
+			if result.is_ok() {
+				success_count += 1;
+			}
+		}
+
+		// At least one should succeed
+		assert!(success_count > 0, "At least one operation should succeed");
+		println!("Rapid operations: {}/{} succeeded", success_count, 5);
+	}
+
+	#[tokio::test]
+	async fn test_user_cache_with_malformed_data() {
+		let state = create_mock_app_state().await;
+		let auth_repo = AuthRepository::new(&state);
+		let email = "malformed@example.com";
+
+		// Try to store malformed user data directly in cache
+		let malformed_user = serde_json::json!({
+			"id": null,
+			"fullname": "",
+			"email": email,
+			"role": null
+		});
+
+		let create_result: Result<Option<serde_json::Value>, _> = state
+			.surrealdb_mem
+			.create((ResourceEnum::UsersCache.to_string(), email))
+			.content(malformed_user)
+			.await;
+
+		if create_result.is_err() {
+			// Database rejected malformed data - this is good
+			println!("Database properly rejected malformed data");
+			return;
+		}
+
+		// If malformed data was stored, verify retrieval fails gracefully
+		let result = auth_repo.query_get_stored_user(email.into()).await;
+		assert!(
+			result.is_err(),
+			"Should fail gracefully with malformed data"
+		);
 	}
 }

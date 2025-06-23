@@ -19,6 +19,9 @@ pub struct TestSessionsDto {
 	#[schema(example = true)]
 	pub shuffle: bool,
 
+	#[schema(example = 120)]
+	pub timer: u32,
+
 	#[schema(example = "2025-05-01T00:00:00Z")]
 	pub start_date: String,
 
@@ -80,6 +83,7 @@ pub struct TestSessionsItemDto {
 	pub weight: String,
 	pub shuffle: bool,
 	pub multiplier: f64,
+	pub timer: u32,
 	pub start_date: String,
 	pub end_date: String,
 }
@@ -226,6 +230,7 @@ impl From<SessionsDetailSchema> for SessionsDetailResponseDto {
 					weight: t.weight,
 					shuffle: t.shuffle,
 					multiplier: t.multiplier,
+					timer: t.timer,
 					start_date: t.start_date,
 					end_date: t.end_date,
 				}

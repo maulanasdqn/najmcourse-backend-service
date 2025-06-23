@@ -42,6 +42,7 @@ async fn test_create_and_get_session() -> Result<()> {
 			weight: "25%".to_string(),
 			shuffle: true,
 			multiplier: 1.2,
+			timer: 120,
 			start_date: "2025-01-01T00:00:00Z".to_string(),
 			end_date: "2025-01-10T00:00:00Z".to_string(),
 		}],
@@ -71,6 +72,7 @@ async fn test_update_session() -> Result<()> {
 			weight: "25%".to_string(),
 			shuffle: true,
 			multiplier: 1.0,
+			timer: 90,
 			start_date: "2025-02-01T00:00:00Z".to_string(),
 			end_date: "2025-02-10T00:00:00Z".to_string(),
 		}],
@@ -87,6 +89,7 @@ async fn test_update_session() -> Result<()> {
 			weight: "25%".to_string(),
 			shuffle: true,
 			multiplier: 1.5,
+			timer: 150,
 			start_date: "2025-02-05T00:00:00Z".to_string(),
 			end_date: "2025-02-15T00:00:00Z".to_string(),
 		}],
@@ -115,6 +118,7 @@ async fn test_delete_session() -> Result<()> {
 			weight: "25%".to_string(),
 			multiplier: 0.9,
 			shuffle: true,
+			timer: 180,
 			start_date: "2025-03-01T00:00:00Z".to_string(),
 			end_date: "2025-03-10T00:00:00Z".to_string(),
 		}],
@@ -158,6 +162,7 @@ async fn test_update_non_existing_session_should_fail() {
 			weight: "25%".into(),
 			shuffle: true,
 			multiplier: 1.0,
+			timer: 60,
 			start_date: "2025-01-01T00:00:00Z".into(),
 			end_date: "2025-01-10T00:00:00Z".into(),
 		}],
@@ -186,6 +191,7 @@ async fn test_create_session_with_invalid_test_ref_should_fail() {
 			weight: "25%".to_string(),
 			shuffle: true,
 			multiplier: 1.0,
+			timer: 100,
 			start_date: "2025-01-01T00:00:00Z".to_string(),
 			end_date: "2025-01-10T00:00:00Z".to_string(),
 		}],
@@ -193,10 +199,12 @@ async fn test_create_session_with_invalid_test_ref_should_fail() {
 	let session_id = repo.query_create_session(payload).await.unwrap();
 	let result = repo.query_session_by_id(&session_id).await;
 	assert!(result.is_err());
-	assert!(result
-		.unwrap_err()
-		.to_string()
-		.contains("failed to deserialize"));
+	assert!(
+		result
+			.unwrap_err()
+			.to_string()
+			.contains("failed to deserialize")
+	);
 }
 
 #[tokio::test]
@@ -224,6 +232,7 @@ async fn test_update_session_with_empty_tests_should_fail() {
 			shuffle: true,
 			weight: "25%".to_string(),
 			multiplier: 1.0,
+			timer: 75,
 			start_date: "2025-04-01T00:00:00Z".to_string(),
 			end_date: "2025-04-10T00:00:00Z".to_string(),
 		}],
@@ -242,10 +251,12 @@ async fn test_update_session_with_empty_tests_should_fail() {
 		.query_update_session(session_id.clone(), update_payload)
 		.await;
 	assert!(result.is_err());
-	assert!(result
-		.unwrap_err()
-		.to_string()
-		.contains("must not be empty"));
+	assert!(
+		result
+			.unwrap_err()
+			.to_string()
+			.contains("must not be empty")
+	);
 }
 
 #[tokio::test]
@@ -291,6 +302,7 @@ async fn test_delete_session_twice_should_fail() -> Result<()> {
 			shuffle: true,
 			weight: "25%".to_string(),
 			multiplier: 1.0,
+			timer: 75,
 			start_date: "2025-05-01T00:00:00Z".to_string(),
 			end_date: "2025-05-10T00:00:00Z".to_string(),
 		}],

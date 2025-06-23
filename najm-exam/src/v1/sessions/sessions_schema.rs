@@ -11,6 +11,7 @@ pub struct TestSessionsSchema {
 	pub shuffle: bool,
 	pub weight: String,
 	pub multiplier: f64,
+	pub timer: u32,
 	pub start_date: String,
 	pub end_date: String,
 }
@@ -21,6 +22,7 @@ pub struct TestSessionsDetailSchema {
 	pub weight: String,
 	pub shuffle: bool,
 	pub multiplier: f64,
+	pub timer: u32,
 	pub start_date: String,
 	pub end_date: String,
 }
@@ -86,6 +88,7 @@ impl SessionsSchema {
 				weight: t.weight,
 				multiplier: t.multiplier,
 				shuffle: t.shuffle,
+				timer: t.timer,
 				start_date: t.start_date,
 				end_date: t.end_date,
 			})
@@ -118,6 +121,7 @@ impl SessionsSchema {
 				weight: t.weight,
 				multiplier: t.multiplier,
 				shuffle: t.shuffle,
+				timer: t.timer,
 				start_date: t.start_date,
 				end_date: t.end_date,
 			})

@@ -4,8 +4,8 @@ use najm_course_entities::AppState;
 use najm_course_utils::{authorized, create_mock_app_state};
 
 use crate::{
-	sessions::{SessionsRepository, SessionsUpdateRequestDto},
 	PermissionsEnum,
+	sessions::{SessionsRepository, SessionsUpdateRequestDto},
 };
 
 use super::{SessionsCreateRequestDto, TestSessionsDto};
@@ -30,6 +30,7 @@ fn generate_payload(name: &str) -> SessionsCreateRequestDto {
 			weight: "25%".to_string(),
 			shuffle: true,
 			multiplier: 1.0,
+			timer: 120,
 			start_date: "2025-01-01T00:00:00Z".into(),
 			end_date: "2025-01-10T00:00:00Z".into(),
 		}],
@@ -114,6 +115,7 @@ async fn test_update_session_should_return_200() {
 			weight: "25%".to_string(),
 			shuffle: true,
 			multiplier: 1.25,
+			timer: 150,
 			start_date: "2025-02-01T00:00:00Z".into(),
 			end_date: "2025-02-10T00:00:00Z".into(),
 		}],

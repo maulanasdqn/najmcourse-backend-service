@@ -66,7 +66,7 @@ impl<'a> AuthRepository<'a> {
 		}
 	}
 
-	pub async fn query_get_stored_otp(&self, email: String) -> Result<u32> {
+	pub async fn query_get_stored_otp(&self, email: String) -> Result<String> {
 		let table = ResourceEnum::OtpCache.to_string();
 		let key = (table.as_str(), email.as_str());
 		let result: Option<AuthOtpSchema> = self.state.surrealdb_mem.select(key).await?;
@@ -86,7 +86,7 @@ impl<'a> AuthRepository<'a> {
 		}
 	}
 
-	pub async fn query_store_otp(&self, email: String, otp: u32) -> Result<String> {
+	pub async fn query_store_otp(&self, email: String, otp: String) -> Result<String> {
 		let expires_at = Utc::now() + Duration::seconds(300);
 		let table: String = ResourceEnum::OtpCache.to_string();
 		let record: Option<AuthOtpSchema> = self

@@ -88,7 +88,9 @@ pub struct AuthVerifyEmailRequestDto {
 		email(message = "Email not valid")
 	)]
 	pub email: String,
-	pub otp: u32,
+
+	#[validate(length(min = 6, max = 6, message = "OTP must be 6 digits"))]
+	pub otp: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
@@ -110,6 +112,7 @@ pub struct AuthRefreshTokenRequestDto {
 pub struct AuthNewPasswordRequestDto {
 	#[validate(length(min = 1, message = "Token cannot be empty"))]
 	pub token: String,
+
 	#[validate(length(
 		min = 8,
 		message = "Password must have at least 8 characters"
@@ -128,6 +131,7 @@ pub struct AuthSetNewPasswordRequestDto {
 		email(message = "Email not valid")
 	)]
 	pub email: String,
+
 	#[validate(length(
 		min = 8,
 		message = "Password must have at least 8 characters"

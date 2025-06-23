@@ -95,7 +95,10 @@ impl AuthService {
 		let new_user = AuthRegisterRequestDto::from(payload);
 		let otp = generate_otp::OtpManager::generate_otp();
 		match auth_repo
-			.query_store_otp(new_user.email.clone(), otp.clone())
+			.query_store_otp(
+				new_user.email.clone(),
+				String::from(otp.clone().to_string()),
+			)
 			.await
 		{
 			Ok(_) => {
@@ -141,7 +144,10 @@ impl AuthService {
 		let _ = auth_repo.query_get_stored_otp(payload.email.clone()).await;
 		let otp = generate_otp::OtpManager::generate_otp();
 		let message = format!("Your OTP code is {}", otp);
-		match auth_repo.query_store_otp(payload.email.clone(), otp).await {
+		match auth_repo
+			.query_store_otp(payload.email.clone(), String::from(otp.to_string()))
+			.await
+		{
 			Ok(_) => match send_email(&payload.email, "OTP Verification", &message) {
 				Ok(_) => common_response(StatusCode::OK, "OTP resent successfully"),
 				Err(err) => common_response(StatusCode::BAD_REQUEST, &err.to_string()),
