@@ -361,7 +361,7 @@ impl<'a> AnswersRepository<'a> {
 		let total_points: f32 = questions_dto
 			.iter()
 			.flat_map(|q| &q.options)
-			.filter(|o| o.is_user_selected)
+			.filter(|o| o.is_correct)
 			.map(|o| o.points.unwrap_or(0.0))
 			.sum();
 		let score = total_points as f64 * test.multiplier;
@@ -480,7 +480,7 @@ impl<'a> AnswersRepository<'a> {
 		let total_points: f32 = questions_dto
 			.iter()
 			.flat_map(|q| &q.options)
-			.filter(|o| o.is_user_selected)
+			.filter(|o| o.is_correct)
 			.map(|o| o.points.unwrap_or(0.0))
 			.sum();
 		let score = total_points as f64 * test.multiplier;
