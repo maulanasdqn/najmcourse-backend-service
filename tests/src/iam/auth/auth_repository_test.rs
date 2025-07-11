@@ -206,14 +206,11 @@ mod auth_repository_test {
 		assert_eq!(get_result.unwrap(), otp);
 	}
 
-	// =============== EDGE CASE TESTS ===============
-
 	#[tokio::test]
 	async fn test_store_otp_with_empty_email() {
 		let app_state = create_mock_app_state().await;
 		let repo = AuthRepository::new(&app_state);
 		let result = repo.query_store_otp("".into(), "123456".into()).await;
-		// Documents current behavior: empty email is allowed
 		assert!(result.is_ok(), "Empty email is currently allowed");
 	}
 
@@ -224,28 +221,7 @@ mod auth_repository_test {
 		let result = repo
 			.query_store_otp("test@example.com".into(), "".into())
 			.await;
-		// Documents current behavior: empty OTP is allowed
 		assert!(result.is_ok(), "Empty OTP is currently allowed");
-	}
-
-	#[tokio::test]
-	async fn test_store_otp_with_invalid_email_format() {
-		let app_state = create_mock_app_state().await;
-		let repo = AuthRepository::new(&app_state);
-		let invalid_emails = vec![
-			"notanemail",
-			"@example.com",
-			"test@",
-			"test..test@example.com",
-			"test@example",
-			"test @example.com",
-		];
-
-		for email in invalid_emails {
-			let result = repo.query_store_otp(email.into(), "123456".into()).await;
-			// Note: Depending on implementation, this might succeed or fail
-			// The test documents the current behavior
-		}
 	}
 
 	#[tokio::test]
@@ -254,8 +230,7 @@ mod auth_repository_test {
 		let repo = AuthRepository::new(&app_state);
 		let long_email = format!("{}@example.com", "a".repeat(1000));
 		let result = repo.query_store_otp(long_email, "123456".into()).await;
-		// Should handle long emails gracefully
-		assert!(result.is_ok() || result.is_err()); // Documents behavior
+		assert!(result.is_ok() || result.is_err());
 	}
 
 	#[tokio::test]
@@ -310,20 +285,13 @@ mod auth_repository_test {
 		let app_state = create_mock_app_state().await;
 		let repo = AuthRepository::new(&app_state);
 		let email = "multi@example.com";
-
-		// Store first OTP
 		let first_result = repo.query_store_otp(email.into(), "111111".into()).await;
 		assert!(first_result.is_ok(), "First OTP should succeed");
-
-		// Try to store second OTP - behavior depends on implementation
 		let second_result = repo.query_store_otp(email.into(), "222222".into()).await;
-
 		if second_result.is_ok() {
-			// If second store succeeds, verify it overwrote the first
 			let fetched = repo.query_get_stored_otp(email.into()).await.unwrap();
 			assert_eq!(fetched, "222222", "Second OTP should overwrite first");
 		} else {
-			// If second store fails, verify first OTP is still there
 			let fetched = repo.query_get_stored_otp(email.into()).await.unwrap();
 			assert_eq!(fetched, "111111", "First OTP should remain if second fails");
 		}
@@ -334,18 +302,12 @@ mod auth_repository_test {
 		let app_state = create_mock_app_state().await;
 		let repo = AuthRepository::new(&app_state);
 		let email = "delete_multi@example.com";
-
-		// Store OTP
 		repo
 			.query_store_otp(email.into(), "123456".into())
 			.await
 			.unwrap();
-
-		// Delete first time
 		let first_delete = repo.query_delete_stored_otp(email.into()).await;
 		assert!(first_delete.is_ok());
-
-		// Delete second time should fail
 		let second_delete = repo.query_delete_stored_otp(email.into()).await;
 		assert!(second_delete.is_err());
 	}
@@ -355,8 +317,6 @@ mod auth_repository_test {
 		let app_state = create_mock_app_state().await;
 		let repo = AuthRepository::new(&app_state);
 		let email = "boundary@example.com";
-
-		// Create OTP that expires in exactly 1 second
 		let expires_at = Utc::now() + Duration::seconds(1);
 		let _: Option<AuthOtpSchema> = repo
 			.state
@@ -368,15 +328,9 @@ mod auth_repository_test {
 			})
 			.await
 			.unwrap();
-
-		// Should be valid immediately
 		let result = repo.query_get_stored_otp(email.into()).await;
 		assert!(result.is_ok(), "OTP should be valid before expiration");
-
-		// Wait for expiration
 		tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-
-		// Should be expired now
 		let expired_result = repo.query_get_stored_otp(email.into()).await;
 		assert!(expired_result.is_err(), "OTP should be expired");
 	}
@@ -385,8 +339,6 @@ mod auth_repository_test {
 	async fn test_rapid_sequential_otp_operations() {
 		let app_state = create_mock_app_state().await;
 		let repo = AuthRepository::new(&app_state);
-
-		// Use different emails to avoid conflicts
 		let mut success_count = 0;
 		for i in 0..5 {
 			let email = format!("rapid{}@example.com", i);
@@ -395,8 +347,6 @@ mod auth_repository_test {
 				success_count += 1;
 			}
 		}
-
-		// At least one should succeed
 		assert!(success_count > 0, "At least one operation should succeed");
 		println!("Rapid operations: {}/{} succeeded", success_count, 5);
 	}
@@ -406,28 +356,21 @@ mod auth_repository_test {
 		let state = create_mock_app_state().await;
 		let auth_repo = AuthRepository::new(&state);
 		let email = "malformed@example.com";
-
-		// Try to store malformed user data directly in cache
 		let malformed_user = serde_json::json!({
 			"id": null,
 			"fullname": "",
 			"email": email,
 			"role": null
 		});
-
 		let create_result: Result<Option<serde_json::Value>, _> = state
 			.surrealdb_mem
 			.create((ResourceEnum::UsersCache.to_string(), email))
 			.content(malformed_user)
 			.await;
-
 		if create_result.is_err() {
-			// Database rejected malformed data - this is good
 			println!("Database properly rejected malformed data");
 			return;
 		}
-
-		// If malformed data was stored, verify retrieval fails gracefully
 		let result = auth_repo.query_get_stored_user(email.into()).await;
 		assert!(
 			result.is_err(),

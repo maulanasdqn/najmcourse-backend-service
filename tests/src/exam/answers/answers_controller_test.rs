@@ -1,11 +1,16 @@
-use super::{AnswerEntryDto, answers_router};
 use crate::{
-	AppState, PermissionsEnum, create_mock_app_state,
-	v1::answers::AnswersCreateRequestDto,
+	authorized, create_mock_app_state, seed_user_with_one_permission,
+	seed_user_with_permissions,
 };
 use axum::{Extension, Router};
 use axum_test::TestServer;
-use najm_util::authorized;
+use najm_entity::AppState;
+use najm_exam::v1::answers::{
+	AnswerEntryDto, AnswersCreateAkademikRequestDto, AnswersSchema, answers_router,
+};
+use najm_iam::v1::permissions::PermissionsEnum;
+use najm_util::get_iso_date;
+use surrealdb::Uuid;
 
 fn create_test_app(state: AppState) -> TestServer {
 	let app = Router::new()
@@ -16,22 +21,16 @@ fn create_test_app(state: AppState) -> TestServer {
 
 #[tokio::test]
 async fn test_post_create_answer_should_return_200() {
-	use najm_course_utils::get_iso_date;
-	use surrealdb::Uuid;
 	let state = create_mock_app_state().await;
+	let (user_id, _) =
+		seed_user_with_one_permission(&state, PermissionsEnum::CreateAnswers).await;
+
 	let db = &state.surrealdb_ws;
-	let user_id = Uuid::new_v4().to_string();
 	let test_id = Uuid::new_v4().to_string();
 	let session_id = Uuid::new_v4().to_string();
 	let question_id = Uuid::new_v4().to_string();
 	let option_id = Uuid::new_v4().to_string();
 	let now = get_iso_date();
-	let _ = db
-		.query(format!(
-			"CREATE app_users SET id = app_users:⟨{}⟩, name = 'Test User', is_deleted = false, created_at = '{}', updated_at = '{}'",
-			user_id, now, now
-		))
-		.await;
 	let _ = db
 		.query(format!(
 			"CREATE app_options SET id = app_options:⟨{}⟩, label = 'Option A', is_correct = true, image_url = 'https://example.com/img.png', is_deleted = false, created_at = '{}', updated_at = '{}'",
@@ -57,7 +56,7 @@ async fn test_post_create_answer_should_return_200() {
 		))
 		.await;
 	let server = create_test_app(state);
-	let payload = AnswersCreateRequestDto {
+	let payload = AnswersCreateAkademikRequestDto {
 		user_id: user_id.clone(),
 		test_id: test_id.clone(),
 		session_id: session_id.clone(),
@@ -69,32 +68,31 @@ async fn test_post_create_answer_should_return_200() {
 	let res = authorized(
 		&server,
 		"POST",
-		"/v1/answers/create",
+		"/v1/answers/create-akademik",
 		vec![&PermissionsEnum::CreateAnswers.to_string()],
 		Some(&payload),
 	)
 	.await;
-	assert_eq!(res.status_code(), 200);
+	assert_eq!(res.status_code(), 201);
 }
 
 #[tokio::test]
 async fn test_delete_answer_should_return_200() {
-	use najm_course_utils::get_iso_date;
-	use surrealdb::Uuid;
 	let state = create_mock_app_state().await;
+	let (user_id, _) = seed_user_with_permissions(
+		&state,
+		vec![
+			PermissionsEnum::CreateAnswers,
+			PermissionsEnum::DeleteAnswers,
+		],
+	)
+	.await;
 	let db = &state.surrealdb_ws;
-	let user_id = Uuid::new_v4().to_string();
 	let test_id = Uuid::new_v4().to_string();
 	let session_id = Uuid::new_v4().to_string();
 	let question_id = Uuid::new_v4().to_string();
 	let option_id = Uuid::new_v4().to_string();
 	let now = get_iso_date();
-	let _ = db
-		.query(format!(
-			"CREATE app_users SET id = app_users:⟨{}⟩, name = 'Test User', is_deleted = false, created_at = '{}', updated_at = '{}'",
-			user_id, now, now
-		))
-		.await;
 	let _ = db
 		.query(format!(
 			"CREATE app_options SET id = app_options:⟨{}⟩, label = 'Option A', is_correct = true, image_url = 'https://example.com/img.png', is_deleted = false, created_at = '{}', updated_at = '{}'",
@@ -120,7 +118,7 @@ async fn test_delete_answer_should_return_200() {
 		))
 		.await;
 	let server = create_test_app(state.clone());
-	let payload = AnswersCreateRequestDto {
+	let payload = AnswersCreateAkademikRequestDto {
 		user_id: user_id.clone(),
 		test_id: test_id.clone(),
 		session_id: session_id.clone(),
@@ -132,13 +130,13 @@ async fn test_delete_answer_should_return_200() {
 	let _ = authorized(
 		&server,
 		"POST",
-		"/v1/answers/create",
+		"/v1/answers/create-akademik",
 		vec![&PermissionsEnum::CreateAnswers.to_string()],
 		Some(&payload),
 	)
 	.await;
 	let answer_id = {
-		let results: Vec<crate::v1::answers::AnswersSchema> = db
+		let results: Vec<AnswersSchema> = db
 			.query(format!(
 				"SELECT * FROM app_answers WHERE test = app_tests:⟨{}⟩ AND user = app_users:⟨{}⟩ ORDER BY created_at DESC LIMIT 1",
 				test_id, user_id

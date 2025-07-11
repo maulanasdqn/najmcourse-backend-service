@@ -13,7 +13,7 @@ pub fn cors_middleware() -> CorsLayer {
 			]
 		}
 		_ => vec![
-			"http://localhost:3000",
+			"http://localhost:3001",
 			"http://localhost:3002",
 			"https://cat.najmcourse.com",
 			"https://backoffice.najmcourse.com",

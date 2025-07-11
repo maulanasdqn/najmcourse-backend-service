@@ -4500,6 +4500,7 @@ dependencies = [
 name = "tests"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "axum",
  "axum-test",
  "chrono",
@@ -4508,6 +4509,7 @@ dependencies = [
  "najm-iam",
  "najm-lib",
  "najm-util",
+ "serde",
  "serde_json",
  "surrealdb",
  "tokio",

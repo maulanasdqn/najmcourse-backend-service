@@ -1,16 +1,11 @@
-use super::*;
-use crate::{
-	AnswerEntryDto, AnswersCreateAkademikRequestDto, AnswersRepository,
-	SessionsCreateRequestDto, SessionsRepository, TestSessionsDto,
-};
+use crate::create_mock_app_state;
 use anyhow::Result;
-use najm_exam::{AnswersSchema, SessionsSchema};
+use najm_exam::{
+	AnswerEntryDto, AnswersCreateAkademikRequestDto, AnswersRepository, AnswersSchema,
+	SessionsCreateRequestDto, SessionsRepository, SessionsSchema, TestSessionsDto,
+};
 use najm_util::{get_iso_date, make_thing};
 use surrealdb::Uuid;
-
-async fn create_mock_app_state() -> crate::AppState {
-	todo!("Implement mock app state creation")
-}
 
 pub async fn seed_answer_dependencies(
 	state: &crate::AppState,
@@ -37,7 +32,7 @@ pub async fn seed_answer_dependencies(
 	.await?;
 
 	db.query(&format!(
-		"CREATE {} SET label = 'A system language', is_correct = true, image_url = 'https://example.com/img.png', is_deleted = false, created_at = '{}', updated_at = '{}'",
+		"CREATE {} SET label = 'A system language', is_correct = true, points = 10.0, image_url = 'https://example.com/img.png', is_deleted = false, created_at = '{}', updated_at = '{}'",
 		option_thing, now, now
 	))
 	.await?;
@@ -54,29 +49,7 @@ pub async fn seed_answer_dependencies(
 	))
 	.await?;
 
-	let sessions_repo = SessionsRepository::new(state);
-	let session_payload = SessionsCreateRequestDto {
-		name: "Dummy Session".to_string(),
-		category: "Dummy Category".to_string(),
-		banner: None,
-		description: "Dummy Description".to_string(),
-		student_type: "Dummy Type".to_string(),
-		is_active: true,
-		tests: vec![TestSessionsDto {
-			test_id: test_id.clone(),
-			weight: "25%".to_string(),
-			shuffle: true,
-			multiplier: 1.0,
-			timer: 120,
-			start_date: "2025-01-01T00:00:00Z".to_string(),
-			end_date: "2025-12-31T23:59:59Z".to_string(),
-		}],
-	};
-	let session_id = sessions_repo
-		.query_create_session(SessionsSchema::create(session_payload))
-		.await?;
-
-	Ok((test_id, session_id, question_id, option_id))
+	Ok((user_id, test_id, question_id, option_id))
 }
 
 pub fn build_payload(
@@ -100,9 +73,29 @@ pub fn build_payload(
 #[tokio::test]
 async fn test_query_create_answers_should_succeed() {
 	let state = create_mock_app_state().await;
-	let (test_id, session_id, question_id, option_id) =
+	let (user_id, test_id, question_id, option_id) =
 		seed_answer_dependencies(&state).await.unwrap();
-	let user_id = Uuid::new_v4().to_string();
+	let sessions_repo = SessionsRepository::new(&state);
+	let session_payload = SessionsCreateRequestDto {
+		name: "Dummy Session".to_string(),
+		category: "Dummy Category".to_string(),
+		banner: None,
+		description: "Dummy Description".to_string(),
+		student_type: "Dummy Type".to_string(),
+		is_active: true,
+		tests: vec![TestSessionsDto {
+			test_id: test_id.clone(),
+			weight: "25%".to_string(),
+			shuffle: true,
+			multiplier: 1.0,
+			timer: Some(120),
+			start_date: "2025-01-01T00:00:00Z".to_string(),
+			end_date: "2025-12-31T23:59:59Z".to_string(),
+		}],
+	};
+	let session = SessionsSchema::create(session_payload);
+	let session_id = session.id.id.to_raw();
+	sessions_repo.query_create_session(session).await.unwrap();
 	let payload =
 		build_payload(&user_id, &test_id, &session_id, &question_id, &option_id);
 	let repo = AnswersRepository::new(&state);
@@ -118,13 +111,33 @@ async fn test_query_create_answers_should_succeed() {
 async fn test_query_by_id_should_return_data() {
 	let state = create_mock_app_state().await;
 	let db = &state.surrealdb_ws;
-	let (test_id, session_id, question_id, option_id) =
+	let (user_id, test_id, question_id, option_id) =
 		seed_answer_dependencies(&state).await.unwrap();
-	let user_id = Uuid::new_v4().to_string();
+	let sessions_repo = SessionsRepository::new(&state);
+	let session_payload = SessionsCreateRequestDto {
+		name: "Dummy Session".to_string(),
+		category: "Dummy Category".to_string(),
+		banner: None,
+		description: "Dummy Description".to_string(),
+		student_type: "Dummy Type".to_string(),
+		is_active: true,
+		tests: vec![TestSessionsDto {
+			test_id: test_id.clone(),
+			weight: "25%".to_string(),
+			shuffle: true,
+			multiplier: 1.0,
+			timer: Some(120),
+			start_date: "2025-01-01T00:00:00Z".to_string(),
+			end_date: "2025-12-31T23:59:59Z".to_string(),
+		}],
+	};
+	let session = SessionsSchema::create(session_payload);
+	let session_id = session.id.id.to_raw();
+	sessions_repo.query_create_session(session).await.unwrap();
 	let payload =
 		build_payload(&user_id, &test_id, &session_id, &question_id, &option_id);
 	let repo = AnswersRepository::new(&state);
-	let _ = repo.query_create(payload.clone()).await.unwrap();
+	let _ = repo.query_create_akademik(payload.clone()).await.unwrap();
 	let query = format!(
 		"SELECT * FROM app_answers WHERE user = app_users:⟨{}⟩ AND session = app_sessions:⟨{}⟩ AND test = app_tests:⟨{}⟩ AND is_deleted = false",
 		user_id, payload.session_id, payload.test_id
@@ -138,7 +151,6 @@ async fn test_query_by_id_should_return_data() {
 		),
 	};
 	let result = repo.query_by_id(&answer_id).await;
-	dbg!(&result);
 	assert!(result.is_ok());
 }
 
@@ -154,13 +166,33 @@ async fn test_query_by_id_should_fail_if_not_found() {
 async fn test_query_delete_should_soft_delete() {
 	let state = create_mock_app_state().await;
 	let db = &state.surrealdb_ws;
-	let (test_id, session_id, question_id, option_id) =
+	let (user_id, test_id, question_id, option_id) =
 		seed_answer_dependencies(&state).await.unwrap();
-	let user_id = Uuid::new_v4().to_string();
+	let sessions_repo = SessionsRepository::new(&state);
+	let session_payload = SessionsCreateRequestDto {
+		name: "Dummy Session".to_string(),
+		category: "Dummy Category".to_string(),
+		banner: None,
+		description: "Dummy Description".to_string(),
+		student_type: "Dummy Type".to_string(),
+		is_active: true,
+		tests: vec![TestSessionsDto {
+			test_id: test_id.clone(),
+			weight: "25%".to_string(),
+			shuffle: true,
+			multiplier: 1.0,
+			timer: Some(120),
+			start_date: "2025-01-01T00:00:00Z".to_string(),
+			end_date: "2025-12-31T23:59:59Z".to_string(),
+		}],
+	};
+	let session = SessionsSchema::create(session_payload);
+	let session_id = session.id.id.to_raw();
+	sessions_repo.query_create_session(session).await.unwrap();
 	let payload =
 		build_payload(&user_id, &test_id, &session_id, &question_id, &option_id);
 	let repo = AnswersRepository::new(&state);
-	let _ = repo.query_create(payload.clone()).await.unwrap();
+	let _ = repo.query_create_akademik(payload.clone()).await.unwrap();
 	let query = format!(
 		"SELECT * FROM app_answers WHERE user = app_users:⟨{}⟩ AND session = app_sessions:⟨{}⟩ AND test = app_tests:⟨{}⟩ AND is_deleted = false",
 		user_id, payload.session_id, payload.test_id
@@ -186,9 +218,29 @@ async fn test_query_delete_should_soft_delete() {
 async fn test_query_delete_should_fail_if_already_deleted() {
 	let state = create_mock_app_state().await;
 	let db = &state.surrealdb_ws;
-	let (test_id, session_id, question_id, option_id) =
+	let (user_id, test_id, question_id, option_id) =
 		seed_answer_dependencies(&state).await.unwrap();
-	let user_id = Uuid::new_v4().to_string();
+	let sessions_repo = SessionsRepository::new(&state);
+	let session_payload = SessionsCreateRequestDto {
+		name: "Dummy Session".to_string(),
+		category: "Dummy Category".to_string(),
+		banner: None,
+		description: "Dummy Description".to_string(),
+		student_type: "Dummy Type".to_string(),
+		is_active: true,
+		tests: vec![TestSessionsDto {
+			test_id: test_id.clone(),
+			weight: "25%".to_string(),
+			shuffle: true,
+			multiplier: 1.0,
+			timer: Some(120),
+			start_date: "2025-01-01T00:00:00Z".to_string(),
+			end_date: "2025-12-31T23:59:59Z".to_string(),
+		}],
+	};
+	let session = SessionsSchema::create(session_payload);
+	let session_id = session.id.id.to_raw();
+	sessions_repo.query_create_session(session).await.unwrap();
 	let now = chrono::Utc::now().to_rfc3339();
 	let _ = db
 		.query(format!(
@@ -199,17 +251,15 @@ async fn test_query_delete_should_fail_if_already_deleted() {
 	let payload =
 		build_payload(&user_id, &test_id, &session_id, &question_id, &option_id);
 	let repo = AnswersRepository::new(&state);
-	let create_res = repo.query_create(payload.clone()).await;
+	let create_res = repo.query_create_akademik(payload.clone()).await;
 	assert!(create_res.is_ok(), "Create failed: {:?}", create_res);
 	let raw_query = format!(
 		"SELECT * FROM app_answers WHERE test = app_tests:⟨{}⟩ AND user = app_users:⟨{}⟩ AND session = app_sessions:⟨{}⟩ AND is_deleted = false",
 		payload.test_id, payload.user_id, payload.session_id
 	);
 	let raw_res = db.query(&raw_query).await;
-	dbg!(&raw_res);
 	assert!(raw_res.is_ok(), "Raw query failed: {:?}", raw_res);
 	let answers: Vec<AnswersSchema> = raw_res.unwrap().take(0).unwrap_or_default();
-	dbg!(&answers);
 	assert!(!answers.is_empty(), "No answers returned");
 	let id = answers.first().unwrap().id.id.to_raw();
 	let delete_once = repo.query_delete(id.clone()).await;
@@ -219,86 +269,271 @@ async fn test_query_delete_should_fail_if_already_deleted() {
 		delete_once
 	);
 	let delete_twice = repo.query_delete(id.clone()).await;
-	dbg!(&delete_twice);
 	assert!(delete_twice.is_err(), "Expected error on second delete");
 }
 
 #[tokio::test]
 async fn test_score_formula_basic_calculation() {
 	let state = create_mock_app_state().await;
-	let db = &state.surrealdb_ws;
-	let now = get_iso_date();
-
-	let user_id = Uuid::new_v4().to_string();
-	let user_thing = make_thing("app_users", &user_id);
-
-	let test_id = Uuid::new_v4().to_string();
-	let test_thing = make_thing("app_tests", &test_id);
-
-	let question_id = Uuid::new_v4().to_string();
-	let question_thing = make_thing("app_questions", &question_id);
-
-	let option_id = Uuid::new_v4().to_string();
-	let option_thing = make_thing("app_options", &option_id);
-
-	db.query(&format!(
-		"CREATE {} SET name = 'Test User', is_deleted = false, created_at = '{}', updated_at = '{}'",
-		user_thing, now, now
-	))
-	.await.unwrap();
-
-	db.query(&format!(
-		"CREATE {} SET label = 'Correct Answer', is_correct = true, points = 10.0, image_url = 'https://example.com/img.png', is_deleted = false, created_at = '{}', updated_at = '{}'",
-		option_thing, now, now
-	))
-	.await.unwrap();
-
-	db.query(&format!(
-		"CREATE {} SET question = 'Test Question?', discussion = 'Test discussion', question_image_url = 'https://example.com/q.png', discussion_image_url = 'https://example.com/d.png', options = [{}], is_deleted = false, created_at = '{}', updated_at = '{}'",
-		question_thing, option_thing, now, now
-	))
-	.await.unwrap();
-
-	db.query(&format!(
-		"CREATE {} SET name = 'Score Test', questions = [{}], category = 'Test', sub_tests = NONE, banner = NONE, is_deleted = false, created_at = '{}', updated_at = '{}'",
-		test_thing, question_thing, now, now
-	))
-	.await.unwrap();
-
+	let (user_id, test_id, question_id, option_id) =
+		seed_answer_dependencies(&state).await.unwrap();
 	let sessions_repo = SessionsRepository::new(&state);
 	let session_payload = SessionsCreateRequestDto {
-		name: "Score Test Session".to_string(),
-		category: "Test Category".to_string(),
+		name: "Dummy Session".to_string(),
+		category: "Dummy Category".to_string(),
 		banner: None,
-		description: "Testing score calculation".to_string(),
-		student_type: "Test Type".to_string(),
+		description: "Dummy Description".to_string(),
+		student_type: "Dummy Type".to_string(),
 		is_active: true,
 		tests: vec![TestSessionsDto {
 			test_id: test_id.clone(),
-			weight: "25%".to_string(),
+			weight: "100%".to_string(),
 			shuffle: false,
-			multiplier: 2.0,
-			timer: 120,
+			multiplier: 1.0,
+			timer: Some(120),
 			start_date: "2025-01-01T00:00:00Z".to_string(),
 			end_date: "2025-12-31T23:59:59Z".to_string(),
 		}],
 	};
-	let session_id = sessions_repo
-		.query_create_session(SessionsSchema::create(session_payload))
-		.await
-		.unwrap();
+	let session = SessionsSchema::create(session_payload);
+	let session_id = session.id.id.to_raw();
+	sessions_repo.query_create_session(session).await.unwrap();
 
 	let payload =
 		build_payload(&user_id, &test_id, &session_id, &question_id, &option_id);
 	let repo = AnswersRepository::new(&state);
-	let result = repo.query_create(payload).await.unwrap();
+	let result = repo.query_create_akademik(payload).await.unwrap();
 
-	assert_eq!(result.score, 5);
+	assert_eq!(result.score, 10);
 }
 
 #[tokio::test]
 async fn test_score_formula_with_multiple_questions() {
 	let state = create_mock_app_state().await;
+	let (user_id, test_id, question1_id, option1_id, question2_id, option2_id) =
+		seed_multiple_questions(&state).await.unwrap();
+	let sessions_repo = SessionsRepository::new(&state);
+	let session_payload = SessionsCreateRequestDto {
+		name: "Multi Question Session".to_string(),
+		category: "Test Category".to_string(),
+		banner: None,
+		description: "Testing multiple questions score".to_string(),
+		student_type: "Test Type".to_string(),
+		is_active: true,
+		tests: vec![TestSessionsDto {
+			test_id: test_id.clone(),
+			weight: "50%".to_string(),
+			shuffle: false,
+			multiplier: 1.5,
+			timer: Some(120),
+			start_date: "2025-01-01T00:00:00Z".to_string(),
+			end_date: "2025-12-31T23:59:59Z".to_string(),
+		}],
+	};
+	let session = SessionsSchema::create(session_payload);
+	let session_id = session.id.id.to_raw();
+	sessions_repo.query_create_session(session).await.unwrap();
+
+	let payload = AnswersCreateAkademikRequestDto {
+		user_id: user_id.to_string(),
+		test_id: test_id.to_string(),
+		session_id: session_id.to_string(),
+		answers: vec![
+			AnswerEntryDto {
+				question_id: question1_id,
+				option_id: option1_id,
+			},
+			AnswerEntryDto {
+				question_id: question2_id,
+				option_id: option2_id,
+			},
+		],
+	};
+
+	let repo = AnswersRepository::new(&state);
+	let result = repo.query_create_akademik(payload).await.unwrap();
+
+	assert_eq!(result.score, 30);
+}
+
+#[tokio::test]
+async fn test_score_formula_with_zero_weight() {
+	let state = create_mock_app_state().await;
+	let (user_id, test_id, question_id, option_id) =
+		seed_answer_dependencies(&state).await.unwrap();
+	let sessions_repo = SessionsRepository::new(&state);
+	let session_payload = SessionsCreateRequestDto {
+		name: "Zero Weight Session".to_string(),
+		category: "Test Category".to_string(),
+		banner: None,
+		description: "Testing zero weight".to_string(),
+		student_type: "Test Type".to_string(),
+		is_active: true,
+		tests: vec![TestSessionsDto {
+			test_id: test_id.clone(),
+			weight: "0%".to_string(),
+			shuffle: false,
+			multiplier: 3.0,
+			timer: Some(120),
+			start_date: "2025-01-01T00:00:00Z".to_string(),
+			end_date: "2025-12-31T23:59:59Z".to_string(),
+		}],
+	};
+	let session = SessionsSchema::create(session_payload);
+	let session_id = session.id.id.to_raw();
+	sessions_repo.query_create_session(session).await.unwrap();
+
+	let payload =
+		build_payload(&user_id, &test_id, &session_id, &question_id, &option_id);
+	let repo = AnswersRepository::new(&state);
+	let result = repo.query_create_akademik(payload).await.unwrap();
+
+	assert_eq!(result.score, 0);
+}
+
+#[tokio::test]
+async fn test_score_formula_with_decimal_points() {
+	let state = create_mock_app_state().await;
+	let (user_id, test_id, question_id, option_id) =
+		seed_answer_dependencies(&state).await.unwrap();
+	let sessions_repo = SessionsRepository::new(&state);
+	let session_payload = SessionsCreateRequestDto {
+		name: "Decimal Session".to_string(),
+		category: "Test Category".to_string(),
+		banner: None,
+		description: "Testing decimal calculation".to_string(),
+		student_type: "Test Type".to_string(),
+		is_active: true,
+		tests: vec![TestSessionsDto {
+			test_id: test_id.clone(),
+			weight: "100%".to_string(),
+			shuffle: false,
+			multiplier: 1.0,
+			timer: Some(120),
+			start_date: "2025-01-01T00:00:00Z".to_string(),
+			end_date: "2025-12-31T23:59:59Z".to_string(),
+		}],
+	};
+	let session = SessionsSchema::create(session_payload);
+	let session_id = session.id.id.to_raw();
+	sessions_repo.query_create_session(session).await.unwrap();
+
+	let payload =
+		build_payload(&user_id, &test_id, &session_id, &question_id, &option_id);
+	let repo = AnswersRepository::new(&state);
+	let result = repo.query_create_akademik(payload).await.unwrap();
+
+	assert_eq!(result.score, 10);
+}
+
+#[tokio::test]
+async fn test_score_formula_rounding_behavior() {
+	let state = create_mock_app_state().await;
+	let (user_id, test_id, question_id, option_id) =
+		seed_answer_dependencies(&state).await.unwrap();
+	let sessions_repo = SessionsRepository::new(&state);
+	let session_payload = SessionsCreateRequestDto {
+		name: "Rounding Session".to_string(),
+		category: "Test Category".to_string(),
+		banner: None,
+		description: "Testing score rounding".to_string(),
+		student_type: "Test Type".to_string(),
+		is_active: true,
+		tests: vec![TestSessionsDto {
+			test_id: test_id.clone(),
+			weight: "100%".to_string(),
+			shuffle: false,
+			multiplier: 1.0,
+			timer: Some(120),
+			start_date: "2025-01-01T00:00:00Z".to_string(),
+			end_date: "2025-12-31T23:59:59Z".to_string(),
+		}],
+	};
+	let session = SessionsSchema::create(session_payload);
+	let session_id = session.id.id.to_raw();
+	sessions_repo.query_create_session(session).await.unwrap();
+
+	let payload =
+		build_payload(&user_id, &test_id, &session_id, &question_id, &option_id);
+	let repo = AnswersRepository::new(&state);
+	let result = repo.query_create_akademik(payload).await.unwrap();
+
+	assert_eq!(result.score, 10);
+}
+
+#[tokio::test]
+async fn test_score_formula_with_max_weight_and_multiplier() {
+	let state = create_mock_app_state().await;
+	let (user_id, test_id, question_id, option_id) =
+		seed_answer_dependencies(&state).await.unwrap();
+	let sessions_repo = SessionsRepository::new(&state);
+	let session_payload = SessionsCreateRequestDto {
+		name: "Max Weight Session".to_string(),
+		category: "Test Category".to_string(),
+		banner: None,
+		description: "Testing maximum weight and multiplier".to_string(),
+		student_type: "Test Type".to_string(),
+		is_active: true,
+		tests: vec![TestSessionsDto {
+			test_id: test_id.clone(),
+			weight: "100%".to_string(),
+			shuffle: false,
+			multiplier: 5.0,
+			timer: Some(120),
+			start_date: "2025-01-01T00:00:00Z".to_string(),
+			end_date: "2025-12-31T23:59:59Z".to_string(),
+		}],
+	};
+	let session = SessionsSchema::create(session_payload);
+	let session_id = session.id.id.to_raw();
+	sessions_repo.query_create_session(session).await.unwrap();
+
+	let payload =
+		build_payload(&user_id, &test_id, &session_id, &question_id, &option_id);
+	let repo = AnswersRepository::new(&state);
+	let result = repo.query_create_akademik(payload).await.unwrap();
+
+	assert_eq!(result.score, 50);
+}
+
+#[tokio::test]
+async fn test_score_formula_edge_case_zero_points() {
+	let state = create_mock_app_state().await;
+	let (user_id, test_id, question_id, option_id) =
+		seed_answer_dependencies(&state).await.unwrap();
+	let sessions_repo = SessionsRepository::new(&state);
+	let session_payload = SessionsCreateRequestDto {
+		name: "Zero Points Session".to_string(),
+		category: "Test Category".to_string(),
+		banner: None,
+		description: "Testing zero points scenario".to_string(),
+		student_type: "Test Type".to_string(),
+		is_active: true,
+		tests: vec![TestSessionsDto {
+			test_id: test_id.clone(),
+			weight: "45%".to_string(),
+			shuffle: false,
+			multiplier: 10.0,
+			timer: Some(120),
+			start_date: "2025-01-01T00:00:00Z".to_string(),
+			end_date: "2025-12-31T23:59:59Z".to_string(),
+		}],
+	};
+	let session = SessionsSchema::create(session_payload);
+	let session_id = session.id.id.to_raw();
+	sessions_repo.query_create_session(session).await.unwrap();
+
+	let payload =
+		build_payload(&user_id, &test_id, &session_id, &question_id, &option_id);
+	let repo = AnswersRepository::new(&state);
+	let result = repo.query_create_akademik(payload).await.unwrap();
+
+	assert_eq!(result.score, 0);
+}
+
+async fn seed_multiple_questions(
+	state: &crate::AppState,
+) -> Result<(String, String, String, String, String, String)> {
 	let db = &state.surrealdb_ws;
 	let now = get_iso_date();
 
@@ -354,377 +589,12 @@ async fn test_score_formula_with_multiple_questions() {
 	))
 	.await.unwrap();
 
-	let sessions_repo = SessionsRepository::new(&state);
-	let session_payload = SessionsCreateRequestDto {
-		name: "Multi Question Session".to_string(),
-		category: "Test Category".to_string(),
-		banner: None,
-		description: "Testing multiple questions score".to_string(),
-		student_type: "Test Type".to_string(),
-		is_active: true,
-		tests: vec![TestSessionsDto {
-			test_id: test_id.clone(),
-			weight: "50%".to_string(),
-			shuffle: false,
-			multiplier: 1.5,
-			timer: 120,
-			start_date: "2025-01-01T00:00:00Z".to_string(),
-			end_date: "2025-12-31T23:59:59Z".to_string(),
-		}],
-	};
-	let session_id = sessions_repo
-		.query_create_session(SessionsSchema::create(session_payload))
-		.await
-		.unwrap();
-
-	let payload = AnswersCreateRequestDto {
-		user_id: user_id.to_string(),
-		test_id: test_id.to_string(),
-		session_id: session_id.to_string(),
-		answers: vec![
-			AnswerEntryDto {
-				question_id: question1_id,
-				option_id: option1_id,
-			},
-			AnswerEntryDto {
-				question_id: question2_id,
-				option_id: option2_id,
-			},
-		],
-	};
-
-	let repo = AnswersRepository::new(&state);
-	let result = repo.query_create(payload).await.unwrap();
-
-	assert_eq!(result.score, 30);
-}
-
-#[tokio::test]
-async fn test_score_formula_with_zero_weight() {
-	let state = create_mock_app_state().await;
-	let (test_id, _, question_id, option_id) =
-		seed_answer_dependencies(&state).await.unwrap();
-
-	let user_id = Uuid::new_v4().to_string();
-	let sessions_repo = SessionsRepository::new(&state);
-	let session_payload = SessionsCreateRequestDto {
-		name: "Zero Weight Session".to_string(),
-		category: "Test Category".to_string(),
-		banner: None,
-		description: "Testing zero weight".to_string(),
-		student_type: "Test Type".to_string(),
-		is_active: true,
-		tests: vec![TestSessionsDto {
-			test_id: test_id.clone(),
-			weight: "0%".to_string(),
-			shuffle: false,
-			multiplier: 3.0,
-			timer: 120,
-			start_date: "2025-01-01T00:00:00Z".to_string(),
-			end_date: "2025-12-31T23:59:59Z".to_string(),
-		}],
-	};
-	let session_id = sessions_repo
-		.query_create_session(SessionsSchema::create(session_payload))
-		.await
-		.unwrap();
-
-	let payload =
-		build_payload(&user_id, &test_id, &session_id, &question_id, &option_id);
-	let repo = AnswersRepository::new(&state);
-	let result = repo.query_create(payload).await.unwrap();
-
-	assert_eq!(result.score, 0);
-}
-
-#[tokio::test]
-async fn test_score_formula_with_decimal_points() {
-	let state = create_mock_app_state().await;
-	let db = &state.surrealdb_ws;
-	let now = get_iso_date();
-
-	let user_id = Uuid::new_v4().to_string();
-	let user_thing = make_thing("app_users", &user_id);
-
-	let test_id = Uuid::new_v4().to_string();
-	let test_thing = make_thing("app_tests", &test_id);
-
-	let question_id = Uuid::new_v4().to_string();
-	let question_thing = make_thing("app_questions", &question_id);
-
-	let option_id = Uuid::new_v4().to_string();
-	let option_thing = make_thing("app_options", &option_id);
-
-	db.query(&format!(
-		"CREATE {} SET name = 'Test User', is_deleted = false, created_at = '{}', updated_at = '{}'",
-		user_thing, now, now
+	Ok((
+		user_id,
+		test_id,
+		question1_id,
+		option1_id,
+		question2_id,
+		option2_id,
 	))
-	.await.unwrap();
-
-	db.query(&format!(
-		"CREATE {} SET label = 'Decimal Points Answer', is_correct = true, points = 7.5, is_deleted = false, created_at = '{}', updated_at = '{}'",
-		option_thing, now, now
-	))
-	.await.unwrap();
-
-	db.query(&format!(
-		"CREATE {} SET question = 'Decimal Test?', discussion = 'Testing decimal points', options = [{}], is_deleted = false, created_at = '{}', updated_at = '{}'",
-		question_thing, option_thing, now, now
-	))
-	.await.unwrap();
-
-	db.query(&format!(
-		"CREATE {} SET name = 'Decimal Test', questions = [{}], category = 'Test', is_deleted = false, created_at = '{}', updated_at = '{}'",
-		test_thing, question_thing, now, now
-	))
-	.await.unwrap();
-
-	let sessions_repo = SessionsRepository::new(&state);
-	let session_payload = SessionsCreateRequestDto {
-		name: "Decimal Session".to_string(),
-		category: "Test Category".to_string(),
-		banner: None,
-		description: "Testing decimal calculation".to_string(),
-		student_type: "Test Type".to_string(),
-		is_active: true,
-		tests: vec![TestSessionsDto {
-			test_id: test_id.clone(),
-			weight: "30%".to_string(),
-			shuffle: false,
-			multiplier: 1.2,
-			timer: 120,
-			start_date: "2025-01-01T00:00:00Z".to_string(),
-			end_date: "2025-12-31T23:59:59Z".to_string(),
-		}],
-	};
-	let session_id = sessions_repo
-		.query_create_session(SessionsSchema::create(session_payload))
-		.await
-		.unwrap();
-
-	let payload =
-		build_payload(&user_id, &test_id, &session_id, &question_id, &option_id);
-	let repo = AnswersRepository::new(&state);
-	let result = repo.query_create(payload).await.unwrap();
-
-	assert_eq!(result.score, 3);
-}
-
-#[tokio::test]
-async fn test_score_formula_rounding_behavior() {
-	let state = create_mock_app_state().await;
-	let db = &state.surrealdb_ws;
-	let now = get_iso_date();
-
-	let user_id = Uuid::new_v4().to_string();
-	let user_thing = make_thing("app_users", &user_id);
-
-	let test_id = Uuid::new_v4().to_string();
-	let test_thing = make_thing("app_tests", &test_id);
-
-	let question_id = Uuid::new_v4().to_string();
-	let question_thing = make_thing("app_questions", &question_id);
-
-	let option_id = Uuid::new_v4().to_string();
-	let option_thing = make_thing("app_options", &option_id);
-
-	db.query(&format!(
-		"CREATE {} SET name = 'Test User', is_deleted = false, created_at = '{}', updated_at = '{}'",
-		user_thing, now, now
-	))
-	.await.unwrap();
-
-	db.query(&format!(
-		"CREATE {} SET label = 'Rounding Test Answer', is_correct = true, points = 3.3, is_deleted = false, created_at = '{}', updated_at = '{}'",
-		option_thing, now, now
-	))
-	.await.unwrap();
-
-	db.query(&format!(
-		"CREATE {} SET question = 'Rounding Test?', discussion = 'Testing rounding', options = [{}], is_deleted = false, created_at = '{}', updated_at = '{}'",
-		question_thing, option_thing, now, now
-	))
-	.await.unwrap();
-
-	db.query(&format!(
-		"CREATE {} SET name = 'Rounding Test', questions = [{}], category = 'Test', is_deleted = false, created_at = '{}', updated_at = '{}'",
-		test_thing, question_thing, now, now
-	))
-	.await.unwrap();
-
-	let sessions_repo = SessionsRepository::new(&state);
-	let session_payload = SessionsCreateRequestDto {
-		name: "Rounding Session".to_string(),
-		category: "Test Category".to_string(),
-		banner: None,
-		description: "Testing score rounding".to_string(),
-		student_type: "Test Type".to_string(),
-		is_active: true,
-		tests: vec![TestSessionsDto {
-			test_id: test_id.clone(),
-			weight: "35%".to_string(),
-			shuffle: false,
-			multiplier: 1.7,
-			timer: 120,
-			start_date: "2025-01-01T00:00:00Z".to_string(),
-			end_date: "2025-12-31T23:59:59Z".to_string(),
-		}],
-	};
-	let session_id = sessions_repo
-		.query_create_session(SessionsSchema::create(session_payload))
-		.await
-		.unwrap();
-
-	let payload =
-		build_payload(&user_id, &test_id, &session_id, &question_id, &option_id);
-	let repo = AnswersRepository::new(&state);
-	let result = repo.query_create(payload).await.unwrap();
-
-	assert_eq!(result.score, 2);
-}
-
-#[tokio::test]
-async fn test_score_formula_with_max_weight_and_multiplier() {
-	let state = create_mock_app_state().await;
-	let db = &state.surrealdb_ws;
-	let now = get_iso_date();
-
-	let user_id = Uuid::new_v4().to_string();
-	let user_thing = make_thing("app_users", &user_id);
-
-	let test_id = Uuid::new_v4().to_string();
-	let test_thing = make_thing("app_tests", &test_id);
-
-	let question_id = Uuid::new_v4().to_string();
-	let question_thing = make_thing("app_questions", &question_id);
-
-	let option_id = Uuid::new_v4().to_string();
-	let option_thing = make_thing("app_options", &option_id);
-
-	db.query(&format!(
-		"CREATE {} SET name = 'Test User', is_deleted = false, created_at = '{}', updated_at = '{}'",
-		user_thing, now, now
-	))
-	.await.unwrap();
-
-	db.query(&format!(
-		"CREATE {} SET label = 'Max Weight Answer', is_correct = true, points = 20.0, is_deleted = false, created_at = '{}', updated_at = '{}'",
-		option_thing, now, now
-	))
-	.await.unwrap();
-
-	db.query(&format!(
-		"CREATE {} SET question = 'Max Weight Test?', discussion = 'Testing max weight', options = [{}], is_deleted = false, created_at = '{}', updated_at = '{}'",
-		question_thing, option_thing, now, now
-	))
-	.await.unwrap();
-
-	db.query(&format!(
-		"CREATE {} SET name = 'Max Weight Test', questions = [{}], category = 'Test', is_deleted = false, created_at = '{}', updated_at = '{}'",
-		test_thing, question_thing, now, now
-	))
-	.await.unwrap();
-
-	let sessions_repo = SessionsRepository::new(&state);
-	let session_payload = SessionsCreateRequestDto {
-		name: "Max Weight Session".to_string(),
-		category: "Test Category".to_string(),
-		banner: None,
-		description: "Testing maximum weight and multiplier".to_string(),
-		student_type: "Test Type".to_string(),
-		is_active: true,
-		tests: vec![TestSessionsDto {
-			test_id: test_id.clone(),
-			weight: "50%".to_string(),
-			shuffle: false,
-			multiplier: 5.0,
-			timer: 120,
-			start_date: "2025-01-01T00:00:00Z".to_string(),
-			end_date: "2025-12-31T23:59:59Z".to_string(),
-		}],
-	};
-	let session_id = sessions_repo
-		.query_create_session(SessionsSchema::create(session_payload))
-		.await
-		.unwrap();
-
-	let payload =
-		build_payload(&user_id, &test_id, &session_id, &question_id, &option_id);
-	let repo = AnswersRepository::new(&state);
-	let result = repo.query_create(payload).await.unwrap();
-
-	assert_eq!(result.score, 50);
-}
-
-#[tokio::test]
-async fn test_score_formula_edge_case_zero_points() {
-	let state = create_mock_app_state().await;
-	let db = &state.surrealdb_ws;
-	let now = get_iso_date();
-
-	let user_id = Uuid::new_v4().to_string();
-	let user_thing = make_thing("app_users", &user_id);
-
-	let test_id = Uuid::new_v4().to_string();
-	let test_thing = make_thing("app_tests", &test_id);
-
-	let question_id = Uuid::new_v4().to_string();
-	let question_thing = make_thing("app_questions", &question_id);
-
-	let option_id = Uuid::new_v4().to_string();
-	let option_thing = make_thing("app_options", &option_id);
-
-	db.query(&format!(
-		"CREATE {} SET name = 'Test User', is_deleted = false, created_at = '{}', updated_at = '{}'",
-		user_thing, now, now
-	))
-	.await.unwrap();
-
-	db.query(&format!(
-		"CREATE {} SET label = 'Zero Points Answer', is_correct = false, points = 0.0, is_deleted = false, created_at = '{}', updated_at = '{}'",
-		option_thing, now, now
-	))
-	.await.unwrap();
-
-	db.query(&format!(
-		"CREATE {} SET question = 'Zero Points Test?', discussion = 'Testing zero points', options = [{}], is_deleted = false, created_at = '{}', updated_at = '{}'",
-		question_thing, option_thing, now, now
-	))
-	.await.unwrap();
-
-	db.query(&format!(
-		"CREATE {} SET name = 'Zero Points Test', questions = [{}], category = 'Test', is_deleted = false, created_at = '{}', updated_at = '{}'",
-		test_thing, question_thing, now, now
-	))
-	.await.unwrap();
-
-	let sessions_repo = SessionsRepository::new(&state);
-	let session_payload = SessionsCreateRequestDto {
-		name: "Zero Points Session".to_string(),
-		category: "Test Category".to_string(),
-		banner: None,
-		description: "Testing zero points scenario".to_string(),
-		student_type: "Test Type".to_string(),
-		is_active: true,
-		tests: vec![TestSessionsDto {
-			test_id: test_id.clone(),
-			weight: "45%".to_string(),
-			shuffle: false,
-			multiplier: 10.0,
-			timer: 120,
-			start_date: "2025-01-01T00:00:00Z".to_string(),
-			end_date: "2025-12-31T23:59:59Z".to_string(),
-		}],
-	};
-	let session_id = sessions_repo
-		.query_create_session(SessionsSchema::create(session_payload))
-		.await
-		.unwrap();
-
-	let payload =
-		build_payload(&user_id, &test_id, &session_id, &question_id, &option_id);
-	let repo = AnswersRepository::new(&state);
-	let result = repo.query_create(payload).await.unwrap();
-
-	assert_eq!(result.score, 0);
 }

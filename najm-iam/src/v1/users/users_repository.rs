@@ -26,7 +26,18 @@ impl<'a> UsersRepository<'a> {
 			)
 			.with_condition("is_deleted = false")
 			.search_field("fullname")
-			.select_fields(vec!["*"])
+			.select_fields(vec![
+				"id",
+				"email",
+				"fullname",
+				"phone_number",
+				"avatar",
+				"student_type",
+				"role",
+				"is_active",
+				"created_at",
+				"updated_at",
+			])
 			.fetch_fields(vec!["role", "role.permissions"])
 			.build()
 			.await?;
