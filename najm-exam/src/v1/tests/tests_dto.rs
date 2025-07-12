@@ -15,6 +15,8 @@ pub struct SubTestsCreateRequestDto {
 
 	pub banner: Option<String>,
 
+	pub passing_grade: f32,
+
 	pub category: String,
 }
 
@@ -30,6 +32,8 @@ pub struct SubTestsUpdateRequestDto {
 	pub banner: Option<String>,
 
 	pub category: String,
+
+	pub passing_grade: f32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -38,6 +42,7 @@ pub struct SubTestsItemDto {
 	pub name: String,
 	pub banner: Option<String>,
 	pub category: String,
+	pub passing_grade: f32,
 	pub questions: Vec<QuestionsItemDto>,
 	pub created_at: String,
 	pub updated_at: String,

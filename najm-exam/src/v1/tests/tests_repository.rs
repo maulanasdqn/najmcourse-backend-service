@@ -189,6 +189,7 @@ impl<'a> TestsRepository<'a> {
 						name: sub_test.name,
 						banner: sub_test.banner,
 						category: sub_test.category,
+						passing_grade: sub_test.passing_grade,
 						questions: sub_question_items,
 						created_at: sub_test.created_at,
 						updated_at: sub_test.updated_at,
@@ -453,6 +454,7 @@ impl<'a> TestsRepository<'a> {
 								&surrealdb::Uuid::new_v4().to_string(),
 							),
 							name: st_dto.name,
+							passing_grade: st_dto.passing_grade,
 							questions: question_things,
 							banner: st_dto.banner,
 							category: st_dto.category,
@@ -521,6 +523,7 @@ impl<'a> TestsRepository<'a> {
 						name: st.name,
 						banner: st.banner,
 						category: st.category,
+						passing_grade: st.passing_grade,
 						questions: st
 							.questions
 							.into_iter()
@@ -594,6 +597,7 @@ impl<'a> TestsRepository<'a> {
 								&ResourceEnum::SubTests.to_string(),
 								&surrealdb::Uuid::new_v4().to_string(),
 							),
+							passing_grade: st_dto.passing_grade,
 							name: st_dto.name,
 							questions: question_things,
 							banner: st_dto.banner,

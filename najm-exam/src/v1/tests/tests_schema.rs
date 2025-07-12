@@ -12,6 +12,7 @@ pub struct SubTestsSchema {
 	pub questions: Vec<Thing>,
 	pub banner: Option<String>,
 	pub category: String,
+	pub passing_grade: f32,
 	pub is_deleted: bool,
 	pub created_at: String,
 	pub updated_at: String,
@@ -75,6 +76,7 @@ pub struct SubTestsDetailSchema {
 	pub questions: Vec<QuestionsDetailSchema>,
 	pub banner: Option<String>,
 	pub category: String,
+	pub passing_grade: f32,
 	pub is_deleted: bool,
 	pub created_at: String,
 	pub updated_at: String,
@@ -101,21 +103,10 @@ impl Default for TestsSchema {
 
 impl TestsSchema {
 	pub fn create(test: TestsCreateRequestDto) -> Self {
-		// For akademik: questions array should contain Thing references, sub_tests should be empty
-		// For psikologi: questions should be empty, sub_tests array should contain Thing references
 		let (questions, sub_tests) = match test.category.to_lowercase().as_str() {
-			"akademik" => {
-				// Questions will be populated with Thing references by the repository
-				(Vec::new(), Vec::new())
-			}
-			"psikologi" => {
-				// Sub-tests will be populated with Thing references by the repository
-				(Vec::new(), Vec::new())
-			}
-			_ => {
-				// Other categories have empty arrays
-				(Vec::new(), Vec::new())
-			}
+			"akademik" => (Vec::new(), Vec::new()),
+			"psikologi" => (Vec::new(), Vec::new()),
+			_ => (Vec::new(), Vec::new()),
 		};
 
 		Self {
@@ -135,21 +126,10 @@ impl TestsSchema {
 	}
 
 	pub fn update(test: TestsUpdateRequestDto, id: String) -> Self {
-		// For akademik: questions array should contain Thing references, sub_tests should be empty
-		// For psikologi: questions should be empty, sub_tests array should contain Thing references
 		let (questions, sub_tests) = match test.category.to_lowercase().as_str() {
-			"akademik" => {
-				// Questions will be populated with Thing references by the repository
-				(Vec::new(), Vec::new())
-			}
-			"psikologi" => {
-				// Sub-tests will be populated with Thing references by the repository
-				(Vec::new(), Vec::new())
-			}
-			_ => {
-				// Other categories have empty arrays
-				(Vec::new(), Vec::new())
-			}
+			"akademik" => (Vec::new(), Vec::new()),
+			"psikologi" => (Vec::new(), Vec::new()),
+			_ => (Vec::new(), Vec::new()),
 		};
 
 		Self {

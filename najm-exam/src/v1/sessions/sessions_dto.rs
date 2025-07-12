@@ -205,6 +205,7 @@ impl From<SessionsDetailSchema> for SessionsDetailResponseDto {
 								id: sub_test.id.id.to_raw(),
 								name: sub_test.name,
 								banner: sub_test.banner,
+								passing_grade: sub_test.passing_grade,
 								category: sub_test.category,
 								questions: sub_test_questions,
 								created_at: sub_test.created_at,
