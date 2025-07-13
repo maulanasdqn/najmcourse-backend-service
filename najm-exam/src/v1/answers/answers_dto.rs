@@ -82,6 +82,7 @@ pub struct TestsItemAnswersDto {
 	pub id: String,
 	pub name: String,
 	pub score: i32,
+	pub passing_grade: Option<f32>,
 	pub questions: Vec<QuestionsItemAnswersDto>,
 	pub created_at: String,
 	pub updated_at: String,

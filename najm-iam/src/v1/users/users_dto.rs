@@ -9,6 +9,11 @@ pub struct UsersActiveInactiveRequestDto {
 	pub is_active: bool,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct UsersCompletePaymentRequestDto {
+	pub is_payment_completed: bool,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema, Validate)]
 pub struct UsersSetNewPasswordRequestDto {
 	#[validate(length(
@@ -118,6 +123,7 @@ pub struct UsersDetailItemDto {
 	pub identity_number: Option<String>,
 	pub is_active: bool,
 	pub is_profile_completed: bool,
+	pub is_payment_completed: bool,
 	pub student_type: Option<String>,
 	pub religion: Option<String>,
 	pub gender: Option<String>,
@@ -140,6 +146,7 @@ impl UsersDetailItemDto {
 			identity_number: dto.identity_number.clone(),
 			is_active: dto.is_active.clone(),
 			is_profile_completed: dto.is_profile_completed.clone(),
+			is_payment_completed: dto.is_payment_completed.clone(),
 			student_type: dto.student_type.clone(),
 			religion: dto.religion.clone(),
 			gender: dto.gender.clone(),
@@ -161,6 +168,7 @@ pub struct UsersListItemDto {
 	pub student_type: Option<String>,
 	pub role: String,
 	pub is_active: bool,
+	pub is_payment_completed: bool,
 	pub created_at: String,
 	pub updated_at: String,
 }
@@ -176,6 +184,7 @@ impl UsersListItemDto {
 			student_type: dto.student_type.clone(),
 			role: dto.role.name.clone(),
 			is_active: dto.is_active.clone(),
+			is_payment_completed: dto.is_payment_completed.clone(),
 			created_at: dto.created_at.clone(),
 			updated_at: dto.updated_at.clone(),
 		}
@@ -190,6 +199,7 @@ pub struct UsersListQueryDto {
 	pub phone_number: String,
 	pub avatar: Option<String>,
 	pub is_active: bool,
+	pub is_payment_completed: bool,
 	pub student_type: Option<String>,
 	pub role: RolesDetailQueryDto,
 	pub created_at: String,
@@ -205,6 +215,7 @@ impl UsersListQueryDto {
 			phone_number: self.phone_number.clone(),
 			avatar: self.avatar.clone(),
 			is_active: self.is_active,
+			is_payment_completed: self.is_payment_completed,
 			student_type: self.student_type.clone(),
 			role: self.role.name.clone(),
 			created_at: self.created_at.clone(),
@@ -227,6 +238,7 @@ pub struct UsersDetailQueryDto {
 	pub is_active: bool,
 	pub is_deleted: bool,
 	pub is_profile_completed: bool,
+	pub is_payment_completed: bool,
 	pub student_type: Option<String>,
 	pub religion: Option<String>,
 	pub gender: Option<String>,

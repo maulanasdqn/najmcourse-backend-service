@@ -35,6 +35,7 @@ impl<'a> UsersRepository<'a> {
 				"student_type",
 				"role",
 				"is_active",
+				"is_payment_completed",
 				"created_at",
 				"updated_at",
 			])

@@ -19,6 +19,7 @@ pub fn users_router() -> Router {
 	Router::new()
 		.route("/", get(get_user_list))
 		.route("/activate/{id}", put(patch_user_active_status))
+		.route("/complete-payment/{id}", put(patch_user_complete_payment))
 		.route("/create", post(post_create_user))
 		.route("/me", get(get_user_me))
 		.route("/delete/{id}", delete(delete_user))

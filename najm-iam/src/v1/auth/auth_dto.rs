@@ -1,5 +1,4 @@
 use crate::UsersDetailItemDto;
-use najm_lib::hash_password;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use validator::{Validate, ValidationError};
@@ -74,10 +73,7 @@ pub struct AuthRegisterRequestDto {
 
 impl AuthRegisterRequestDto {
 	pub fn from(self) -> Self {
-		Self {
-			password: hash_password(&self.password).unwrap(),
-			..self
-		}
+		Self { ..self }
 	}
 }
 

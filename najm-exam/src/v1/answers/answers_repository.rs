@@ -106,6 +106,7 @@ impl<'a> AnswersRepository<'a> {
 			id: answer_id,
 			name: test_response.name,
 			score: score_total,
+			passing_grade: None,
 			questions: questions_dto,
 			created_at: test_response.created_at,
 			updated_at: test_response.updated_at,
@@ -121,16 +122,7 @@ impl<'a> AnswersRepository<'a> {
 	) -> Result<TestsItemAnswersDto> {
 		let db = &self.state.surrealdb_ws;
 		let question_repo = QuestionsRepository::new(self.state);
-		let session_repo = SessionsRepository::new(self.state);
 		let test_repo = TestsRepository::new(self.state);
-		let session = session_repo
-			.query_session_by_id(session_id.to_string())
-			.await?;
-		let test = session
-			.tests
-			.into_iter()
-			.find(|t| t.test.id == test_id)
-			.ok_or_else(|| Error::msg("Test not found in session"))?;
 		let test_detail = test_repo.query_test_by_id(test_id).await?;
 		let sub_test = test_detail
 			.sub_tests
@@ -182,20 +174,30 @@ impl<'a> AnswersRepository<'a> {
 			});
 		}
 		let score_total = {
-			let total_points: f32 = questions_dto
-				.iter()
-				.flat_map(|q| &q.options)
-				.filter(|o| o.is_user_selected)
-				.map(|o| o.points.unwrap_or(0.0))
-				.sum();
-			let score = total_points as f64 * test.multiplier;
-			let weight = SessionWeightEnum::to_float(&test.weight);
-			(weight * score).round() as i32
+			let mut total_points: f32 = 0.0;
+			if sub_test.category == "Akademik" {
+				total_points = questions_dto
+					.iter()
+					.flat_map(|q| &q.options)
+					.filter(|o| o.is_user_selected && o.is_correct)
+					.map(|o| o.points.unwrap_or(0.0))
+					.sum();
+			}
+			if sub_test.category == "Psikologi" {
+				total_points = questions_dto
+					.iter()
+					.flat_map(|q| &q.options)
+					.filter(|o| o.is_user_selected)
+					.map(|o| o.points.unwrap_or(0.0))
+					.sum();
+			}
+			total_points.round() as i32
 		};
 		Ok(TestsItemAnswersDto {
 			id: answer_id,
 			name: sub_test.name.clone(),
 			score: score_total,
+			passing_grade: Some(sub_test.passing_grade),
 			questions: questions_dto,
 			created_at: sub_test.created_at.clone(),
 			updated_at: sub_test.updated_at.clone(),
@@ -371,6 +373,7 @@ impl<'a> AnswersRepository<'a> {
 			id: answer_id,
 			name: test_data.name,
 			score: score_total,
+			passing_grade: None,
 			questions: questions_dto,
 			created_at: test_data.created_at,
 			updated_at: test_data.updated_at,
@@ -385,7 +388,6 @@ impl<'a> AnswersRepository<'a> {
 		let db = &self.state.surrealdb_ws;
 		let test_repo = TestsRepository::new(&self.state);
 		let question_repo = QuestionsRepository::new(&self.state);
-		let session_repo = SessionsRepository::new(&self.state);
 		let now = get_iso_date();
 		for entry in &payload.answers {
 			let selected_option: Option<OptionsSchema> = db
@@ -420,14 +422,6 @@ impl<'a> AnswersRepository<'a> {
 				.await?;
 		}
 		let test_data = test_repo.query_test_by_id(&payload.test_id).await?;
-		let session = session_repo
-			.query_session_by_id(payload.session_id.clone())
-			.await?;
-		let test = session
-			.tests
-			.into_iter()
-			.find(|t| t.test.id == payload.test_id)
-			.ok_or_else(|| Error::msg("Test not found in session"))?;
 		let sub_test = test_data
 			.sub_tests
 			.as_ref()
@@ -477,19 +471,31 @@ impl<'a> AnswersRepository<'a> {
 				updated_at: question.updated_at,
 			});
 		}
-		let total_points: f32 = questions_dto
-			.iter()
-			.flat_map(|q| &q.options)
-			.filter(|o| o.is_user_selected && o.is_correct)
-			.map(|o| o.points.unwrap_or(0.0))
-			.sum();
-		let score = total_points as f64 * test.multiplier;
-		let weight = SessionWeightEnum::to_float(&test.weight);
-		let score_total = (weight * score).round() as i32;
+		let score_total = {
+			let mut total_points: f32 = 0.0;
+			if sub_test.category == "Akademik" {
+				total_points = questions_dto
+					.iter()
+					.flat_map(|q| &q.options)
+					.filter(|o| o.is_user_selected && o.is_correct)
+					.map(|o| o.points.unwrap_or(0.0))
+					.sum();
+			}
+			if sub_test.category == "Psikologi" {
+				total_points = questions_dto
+					.iter()
+					.flat_map(|q| &q.options)
+					.filter(|o| o.is_user_selected)
+					.map(|o| o.points.unwrap_or(0.0))
+					.sum();
+			}
+			total_points.round() as i32
+		};
 		Ok(TestsItemAnswersDto {
 			id: answer_id,
 			name: sub_test.name.clone(),
 			score: score_total,
+			passing_grade: Some(sub_test.passing_grade),
 			questions: questions_dto,
 			created_at: sub_test.created_at.clone(),
 			updated_at: sub_test.updated_at.clone(),

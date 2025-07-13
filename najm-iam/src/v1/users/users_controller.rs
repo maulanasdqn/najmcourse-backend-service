@@ -1,7 +1,8 @@
 use crate::{AppState, MetaRequestDto, v1::users_service::UsersService};
 use crate::{
 	MessageResponseDto, PermissionsEnum, ResponseListSuccessDto, ResponseSuccessDto,
-	UsersCreateRequestDto, UsersDetailItemDto, permissions_guard,
+	UsersCompletePaymentRequestDto, UsersCreateRequestDto, UsersDetailItemDto,
+	permissions_guard,
 };
 use axum::extract::{Path, Query};
 use axum::http::HeaderMap;
@@ -209,6 +210,36 @@ pub async fn patch_user_active_status(
 	.await
 	{
 		Ok(_) => UsersService::set_user_active_status(&state, id, payload).await,
+		Err(response) => response,
+	}
+}
+
+#[utoipa::path(
+	put,
+	security(
+        ("Bearer" = [])
+    ),
+	path = "/v1/users/complete-payment/{id}",
+	request_body = UsersCompletePaymentRequestDto,
+	responses(
+		(status = 200, description = "Set user complete payment", body = MessageResponseDto)
+	),
+	tag = "Users"
+)]
+pub async fn patch_user_complete_payment(
+	headers: HeaderMap,
+	Extension(state): Extension<AppState>,
+	Path(id): Path<String>,
+	Json(payload): Json<UsersCompletePaymentRequestDto>,
+) -> impl IntoResponse {
+	match permissions_guard(
+		&headers,
+		state.clone(),
+		vec![PermissionsEnum::ActivateUsers],
+	)
+	.await
+	{
+		Ok(_) => UsersService::set_user_payment_status(&state, id, payload).await,
 		Err(response) => response,
 	}
 }

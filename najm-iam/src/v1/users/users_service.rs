@@ -3,7 +3,8 @@ use super::{
 	UsersSetNewPasswordRequestDto, UsersUpdateRequestDto,
 };
 use crate::{
-	AppState, MetaRequestDto, ResponseListSuccessDto, UsersRepository, UsersSchema,
+	AppState, MetaRequestDto, ResponseListSuccessDto, UsersCompletePaymentRequestDto,
+	UsersRepository, UsersSchema,
 };
 use crate::{
 	ResourceEnum, ResponseSuccessDto, common_response, extract_email, make_thing,
@@ -130,6 +131,29 @@ impl UsersService {
 			Ok(user) if !user.is_deleted => {
 				let patch = UsersSchema {
 					is_active: payload.is_active,
+					..UsersSchema::from(user)
+				};
+				match repo.query_update_user(patch).await {
+					Ok(msg) => common_response(StatusCode::OK, &msg),
+					Err(e) => common_response(StatusCode::BAD_REQUEST, &e.to_string()),
+				}
+			}
+			Ok(_) => common_response(StatusCode::NOT_FOUND, "User not found"),
+			Err(err) => common_response(StatusCode::BAD_REQUEST, &err.to_string()),
+		}
+	}
+
+	pub async fn set_user_payment_status(
+		state: &AppState,
+		id: String,
+		payload: UsersCompletePaymentRequestDto,
+	) -> Response {
+		let repo = UsersRepository::new(state);
+		let thing_id = make_thing(&ResourceEnum::Users.to_string(), &id);
+		match repo.query_user_by_id(thing_id.id.to_raw()).await {
+			Ok(user) if !user.is_deleted => {
+				let patch = UsersSchema {
+					is_payment_completed: payload.is_payment_completed,
 					..UsersSchema::from(user)
 				};
 				match repo.query_update_user(patch).await {
