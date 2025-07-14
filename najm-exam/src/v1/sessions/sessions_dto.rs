@@ -270,3 +270,39 @@ impl From<SessionsSchema> for SessionsResponseDto {
 		}
 	}
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct StudentStatsResponseDto {
+	pub average_score_per_month: Vec<MonthlyScoreDto>,
+	pub tests_taken: Vec<TestTakenDto>,
+	pub total_tests_taken: u32,
+	pub average_score_overall: f64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct MonthlyScoreDto {
+	#[schema(example = "2024-01")]
+	pub month: String,
+	#[schema(example = 85.5)]
+	pub average_score: f64,
+	#[schema(example = 5)]
+	pub tests_count: u32,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
+pub struct TestTakenDto {
+	#[schema(example = "uuid")]
+	pub test_id: String,
+	#[schema(example = "Tryout Saintek 2025")]
+	pub test_name: String,
+	#[schema(example = "Saintek")]
+	pub category: String,
+	#[schema(example = 85)]
+	pub score: i32,
+	#[schema(example = "2024-01-15T10:30:00Z")]
+	pub taken_at: String,
+	#[schema(example = "uuid")]
+	pub session_id: String,
+	#[schema(example = "Tryout Saintek 2025")]
+	pub session_name: String,
+}
