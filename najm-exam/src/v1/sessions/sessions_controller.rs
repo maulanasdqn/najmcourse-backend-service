@@ -1,6 +1,6 @@
 use super::{
 	SessionsCreateRequestDto, SessionsDetailResponseDto, SessionsResponseDto,
-	SessionsService, SessionsUpdateRequestDto,
+	SessionsService, SessionsUpdateRequestDto, StudentStatsResponseDto,
 };
 use crate::{
 	permissions_guard, AppState, MessageResponseDto, MetaRequestDto, PermissionsEnum,
@@ -151,6 +151,33 @@ pub async fn delete_session(
 	.await
 	{
 		Ok(_) => SessionsService::delete_session(&state, id).await,
+		Err(response) => response,
+	}
+}
+
+#[utoipa::path(
+	get,
+	security(("Bearer" = [])),
+	path = "/v1/sessions/student-stats/{user_id}",
+	params(("user_id" = String, Path, description = "User ID")),
+	responses(
+		(status = 200, description = "Get student dashboard stats", body = ResponseSuccessDto<StudentStatsResponseDto>)
+	),
+	tag = "Sessions"
+)]
+pub async fn get_student_stats(
+	headers: axum::http::HeaderMap,
+	Extension(state): Extension<AppState>,
+	Path(user_id): Path<String>,
+) -> impl IntoResponse {
+	match permissions_guard(
+		&headers,
+		state.clone(),
+		vec![PermissionsEnum::ReadDetailSessions],
+	)
+	.await
+	{
+		Ok(_) => SessionsService::get_student_stats(&state, user_id).await,
 		Err(response) => response,
 	}
 }

@@ -24,4 +24,5 @@ pub fn sessions_router() -> Router {
 		.route("/detail/{id}", get(get_session_by_id))
 		.route("/update/{id}", put(put_update_session))
 		.route("/delete/{id}", delete(delete_session))
+		.route("/student-stats/{user_id}", get(get_student_stats))
 }
