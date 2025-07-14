@@ -220,6 +220,7 @@ impl From<SessionsDetailSchema> for SessionsDetailResponseDto {
 					name: test.name,
 					banner: test.banner,
 					category: test.category,
+					subject: test.subject,
 					questions: Some(questions),
 					sub_tests,
 					created_at: test.created_at,

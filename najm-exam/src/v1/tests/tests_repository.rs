@@ -204,6 +204,7 @@ impl<'a> TestsRepository<'a> {
 			name: test.name,
 			banner: test.banner,
 			category: test.category,
+			subject: test.subject,
 			questions: Some(question_items),
 			sub_tests: sub_test_items,
 			created_at: test.created_at,
@@ -229,6 +230,7 @@ impl<'a> TestsRepository<'a> {
 			questions,
 			sub_tests: _,
 			is_deleted: _,
+			subject,
 			category,
 			created_at,
 			updated_at,
@@ -285,6 +287,7 @@ impl<'a> TestsRepository<'a> {
 			name,
 			banner,
 			category,
+			subject,
 			questions: Some(question_items),
 			sub_tests: None,
 			created_at,
@@ -495,6 +498,7 @@ impl<'a> TestsRepository<'a> {
 		}
 		let create_payload = super::TestsCreateRequestDto {
 			name: payload.name,
+			subject: payload.subject,
 			questions: payload.questions.map(|questions| {
 				questions
 					.into_iter()

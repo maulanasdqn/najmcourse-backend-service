@@ -53,6 +53,9 @@ pub struct TestsCreateRequestDto {
 	#[validate(length(min = 1, message = "Name must not be empty"))]
 	pub name: String,
 
+	#[validate(length(min = 1, message = "Subject must not be empty"))]
+	pub subject: String,
+
 	pub questions: Option<Vec<QuestionsCreateRequestDto>>,
 
 	pub sub_tests: Option<Vec<SubTestsCreateRequestDto>>,
@@ -66,6 +69,9 @@ pub struct TestsCreateRequestDto {
 pub struct TestsUpdateRequestDto {
 	#[validate(length(min = 1, message = "Name must not be empty"))]
 	pub name: String,
+
+	#[validate(length(min = 1, message = "Subject must not be empty"))]
+	pub subject: String,
 
 	pub questions: Option<Vec<QuestionsUpdateRequestDto>>,
 
@@ -84,6 +90,7 @@ pub struct TestsItemDto {
 	pub category: String,
 	pub questions: Option<Vec<QuestionsItemDto>>,
 	pub sub_tests: Option<Vec<SubTestsItemDto>>,
+	pub subject: String,
 	pub created_at: String,
 	pub updated_at: String,
 }
@@ -96,6 +103,7 @@ pub struct TestsResponseListDto {
 	pub banner: Option<String>,
 	pub question_count: Option<u32>,
 	pub sub_test_count: u32,
+	pub subject: String,
 	pub created_at: String,
 	pub updated_at: String,
 }
@@ -108,6 +116,7 @@ impl From<TestsSchema> for TestsResponseListDto {
 			name: value.name,
 			banner: value.banner,
 			category: value.category,
+			subject: value.subject,
 			question_count: if value.questions.is_empty() {
 				Some(0)
 			} else {
@@ -137,6 +146,7 @@ impl TestsItemDto {
 			category: value.category,
 			questions,
 			sub_tests: None,
+			subject: value.subject,
 			created_at: value.created_at,
 			updated_at: value.updated_at,
 		}
@@ -155,6 +165,7 @@ impl TestsItemDto {
 			category: value.category,
 			questions,
 			sub_tests,
+			subject: value.subject,
 			created_at: value.created_at,
 			updated_at: value.updated_at,
 		}
