@@ -75,6 +75,7 @@ mod auth_repository_test {
 			religion: None,
 			identity_number: None,
 			is_profile_completed: false,
+			is_payment_completed: false,
 			role: RolesDetailQueryDto {
 				id: make_thing("app_roles", &Uuid::new_v4().to_string()),
 				name: "Dummy Role".into(),

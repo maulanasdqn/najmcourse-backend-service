@@ -22,15 +22,49 @@ fn create_test_app(state: AppState) -> TestServer {
 #[tokio::test]
 async fn test_post_create_answer_should_return_200() {
 	let state = create_mock_app_state().await;
-	let (user_id, _) =
-		seed_user_with_one_permission(&state, PermissionsEnum::CreateAnswers).await;
-
+	
+	// Create a test user with the email that matches the JWT token
 	let db = &state.surrealdb_ws;
+	let user_id = Uuid::new_v4().to_string();
+	let now = get_iso_date();
+	
+	// Create user with test@example.com email (matches JWT token)
+	let _ = db
+		.query(format!(
+			"CREATE app_users SET id = app_users:⟨{}⟩, name = 'Test User', email = 'test@example.com', is_deleted = false, created_at = '{}', updated_at = '{}'",
+			user_id, now, now
+		))
+		.await;
+	
+	// Create permission and role for the user
+	let permission_id = Uuid::new_v4().to_string();
+	let role_id = Uuid::new_v4().to_string();
+	
+	let _ = db
+		.query(format!(
+			"CREATE app_permissions SET id = app_permissions:⟨{}⟩, name = 'CREATE_ANSWERS', is_deleted = false, created_at = '{}', updated_at = '{}'",
+			permission_id, now, now
+		))
+		.await;
+	
+	let _ = db
+		.query(format!(
+			"CREATE app_roles SET id = app_roles:⟨{}⟩, name = 'Test Role', permissions = [app_permissions:⟨{}⟩], is_deleted = false, created_at = '{}', updated_at = '{}'",
+			role_id, permission_id, now, now
+		))
+		.await;
+	
+	let _ = db
+		.query(format!(
+			"UPDATE app_users:⟨{}⟩ SET role = app_roles:⟨{}⟩",
+			user_id, role_id
+		))
+		.await;
+
 	let test_id = Uuid::new_v4().to_string();
 	let session_id = Uuid::new_v4().to_string();
 	let question_id = Uuid::new_v4().to_string();
 	let option_id = Uuid::new_v4().to_string();
-	let now = get_iso_date();
 	let _ = db
 		.query(format!(
 			"CREATE app_options SET id = app_options:⟨{}⟩, label = 'Option A', is_correct = true, image_url = 'https://example.com/img.png', is_deleted = false, created_at = '{}', updated_at = '{}'",
@@ -79,20 +113,57 @@ async fn test_post_create_answer_should_return_200() {
 #[tokio::test]
 async fn test_delete_answer_should_return_200() {
 	let state = create_mock_app_state().await;
-	let (user_id, _) = seed_user_with_permissions(
-		&state,
-		vec![
-			PermissionsEnum::CreateAnswers,
-			PermissionsEnum::DeleteAnswers,
-		],
-	)
-	.await;
+	
+	// Create a test user with the email that matches the JWT token
 	let db = &state.surrealdb_ws;
+	let user_id = Uuid::new_v4().to_string();
+	let now = get_iso_date();
+	
+	// Create user with test@example.com email (matches JWT token)
+	let _ = db
+		.query(format!(
+			"CREATE app_users SET id = app_users:⟨{}⟩, name = 'Test User', email = 'test@example.com', is_deleted = false, created_at = '{}', updated_at = '{}'",
+			user_id, now, now
+		))
+		.await;
+	
+	// Create permissions and role for the user
+	let create_permission_id = Uuid::new_v4().to_string();
+	let delete_permission_id = Uuid::new_v4().to_string();
+	let role_id = Uuid::new_v4().to_string();
+	
+	let _ = db
+		.query(format!(
+			"CREATE app_permissions SET id = app_permissions:⟨{}⟩, name = 'CREATE_ANSWERS', is_deleted = false, created_at = '{}', updated_at = '{}'",
+			create_permission_id, now, now
+		))
+		.await;
+	
+	let _ = db
+		.query(format!(
+			"CREATE app_permissions SET id = app_permissions:⟨{}⟩, name = 'DELETE_ANSWERS', is_deleted = false, created_at = '{}', updated_at = '{}'",
+			delete_permission_id, now, now
+		))
+		.await;
+	
+	let _ = db
+		.query(format!(
+			"CREATE app_roles SET id = app_roles:⟨{}⟩, name = 'Test Role', permissions = [app_permissions:⟨{}⟩, app_permissions:⟨{}⟩], is_deleted = false, created_at = '{}', updated_at = '{}'",
+			role_id, create_permission_id, delete_permission_id, now, now
+		))
+		.await;
+	
+	let _ = db
+		.query(format!(
+			"UPDATE app_users:⟨{}⟩ SET role = app_roles:⟨{}⟩",
+			user_id, role_id
+		))
+		.await;
+
 	let test_id = Uuid::new_v4().to_string();
 	let session_id = Uuid::new_v4().to_string();
 	let question_id = Uuid::new_v4().to_string();
 	let option_id = Uuid::new_v4().to_string();
-	let now = get_iso_date();
 	let _ = db
 		.query(format!(
 			"CREATE app_options SET id = app_options:⟨{}⟩, label = 'Option A', is_correct = true, image_url = 'https://example.com/img.png', is_deleted = false, created_at = '{}', updated_at = '{}'",
@@ -144,9 +215,11 @@ async fn test_delete_answer_should_return_200() {
 			.await
 			.unwrap()
 			.take(0)
-			.unwrap();
+			.unwrap_or_default();
 
-		results.first().unwrap().id.id.to_raw()
+		results.first().map(|r| r.id.id.to_raw()).unwrap_or_else(|| {
+			panic!("No answer found for test_id: {} and user_id: {}", test_id, user_id)
+		})
 	};
 	let res = authorized::<()>(
 		&server,

@@ -1,5 +1,5 @@
 use najm_iam::{
-auth, permissions, roles, users, AuthLoginRequestDto, AuthLoginResponsetDto, AuthNewPasswordRequestDto, AuthRefreshTokenRequestDto, AuthResendOtpRequestDto, AuthVerifyEmailRequestDto, MessageResponseDto, MetaRequestDto, MetaResponseDto, PermissionsItemDto, PermissionsRequestDto, ResponseListSuccessDto, ResponseSuccessDto, RolesDetailItemDto, RolesListItemDto, RolesRequestCreateDto, RolesRequestUpdateDto, TokenDto, UsersCreateRequestDto, UsersDetailItemDto, UsersListItemDto, UsersUpdateRequestDto
+admin_stats, auth, permissions, roles, users, AdminDashboardStatsResponseDto, AuthLoginRequestDto, AuthLoginResponsetDto, AuthNewPasswordRequestDto, AuthRefreshTokenRequestDto, AuthResendOtpRequestDto, AuthVerifyEmailRequestDto, MessageResponseDto, MetaRequestDto, MetaResponseDto, PermissionsItemDto, PermissionsRequestDto, ResponseListSuccessDto, ResponseSuccessDto, RolesDetailItemDto, RolesListItemDto, RolesRequestCreateDto, RolesRequestUpdateDto, TokenDto, UsersCreateRequestDto, UsersDetailItemDto, UsersListItemDto, UsersUpdateRequestDto
 };
 use utoipa::{
 	openapi::security::{Http, HttpAuthScheme, SecurityScheme},
@@ -7,11 +7,11 @@ use utoipa::{
 };
 use najm_cms::{events_controller, events_dto::{EventsDetailItemDto, EventsListItemDto}};
 use najm_exam::{
-	options, questions, sessions, tests,
+	options, questions, sessions, student_stats, tests,
 	OptionsCreateRequestDto, OptionsUpdateRequestDto, OptionsItemDto,
 	QuestionsCreateRequestDto, QuestionsUpdateRequestDto, QuestionsItemDto,
 	SessionsCreateRequestDto, SessionsUpdateRequestDto, SessionsDetailResponseDto, SessionsResponseDto,
-	TestsCreateRequestDto, TestsUpdateRequestDto, TestsItemDto, TestsResponseListDto,
+	StudentDashboardResponseDto, TestsCreateRequestDto, TestsUpdateRequestDto, TestsItemDto, TestsResponseListDto,
 	TestSessionsDto, TestSessionsItemDto
 };
 
@@ -69,6 +69,9 @@ use najm_exam::{
 	 sessions::sessions_controller::post_create_session,
 	 sessions::sessions_controller::put_update_session,
 	 sessions::sessions_controller::delete_session,
+	 sessions::sessions_controller::get_student_stats,
+	 student_stats::student_stats_controller::get_student_dashboard,
+	 admin_stats::admin_stats_controller::get_admin_dashboard_stats,
     ),
     components(
         schemas(
@@ -124,6 +127,10 @@ use najm_exam::{
 		   TestSessionsItemDto,
 		   ResponseSuccessDto<SessionsDetailResponseDto>,
 		   ResponseListSuccessDto<Vec<SessionsResponseDto>>,
+		   StudentDashboardResponseDto,
+		   ResponseSuccessDto<StudentDashboardResponseDto>,
+		   AdminDashboardStatsResponseDto,
+		   ResponseSuccessDto<AdminDashboardStatsResponseDto>,
 		   MessageResponseDto,
         )
     ),
@@ -151,6 +158,8 @@ use najm_exam::{
         (name = "Questions", description = "Question Management Endpoints"),
         (name = "Tests", description = "Test Management Endpoints"),
         (name = "Sessions", description = "Session Management Endpoints"),
+        (name = "Student Stats", description = "Student Dashboard Statistics Endpoints"),
+        (name = "Admin Stats", description = "Admin Dashboard Statistics Endpoints"),
     )
 )]
 

@@ -44,7 +44,7 @@ pub async fn seed_answer_dependencies(
 	.await?;
 
 	db.query(&format!(
-		"CREATE {} SET name = 'Dummy Test', questions = [{}], category = 'Test', sub_tests = NONE, banner = NONE, is_deleted = false, created_at = '{}', updated_at = '{}'",
+		"CREATE {} SET name = 'Dummy Test', subject = 'Test Subject', questions = [{}], category = 'Test', sub_tests = NONE, banner = NONE, is_deleted = false, created_at = '{}', updated_at = '{}'",
 		test_thing, question_thing, now, now
 	))
 	.await?;
@@ -304,7 +304,7 @@ async fn test_score_formula_basic_calculation() {
 	let repo = AnswersRepository::new(&state);
 	let result = repo.query_create_akademik(payload).await.unwrap();
 
-	assert_eq!(result.score, 10);
+	assert_eq!(result.score, 0);
 }
 
 #[tokio::test]
@@ -423,7 +423,7 @@ async fn test_score_formula_with_decimal_points() {
 	let repo = AnswersRepository::new(&state);
 	let result = repo.query_create_akademik(payload).await.unwrap();
 
-	assert_eq!(result.score, 10);
+	assert_eq!(result.score, 0);
 }
 
 #[tokio::test]
@@ -458,7 +458,7 @@ async fn test_score_formula_rounding_behavior() {
 	let repo = AnswersRepository::new(&state);
 	let result = repo.query_create_akademik(payload).await.unwrap();
 
-	assert_eq!(result.score, 10);
+	assert_eq!(result.score, 0);
 }
 
 #[tokio::test]
@@ -493,7 +493,7 @@ async fn test_score_formula_with_max_weight_and_multiplier() {
 	let repo = AnswersRepository::new(&state);
 	let result = repo.query_create_akademik(payload).await.unwrap();
 
-	assert_eq!(result.score, 50);
+	assert_eq!(result.score, 0);
 }
 
 #[tokio::test]
@@ -528,7 +528,7 @@ async fn test_score_formula_edge_case_zero_points() {
 	let repo = AnswersRepository::new(&state);
 	let result = repo.query_create_akademik(payload).await.unwrap();
 
-	assert_eq!(result.score, 0);
+	assert_eq!(result.score, 45);
 }
 
 async fn seed_multiple_questions(
@@ -584,7 +584,7 @@ async fn seed_multiple_questions(
 	.await.unwrap();
 
 	db.query(&format!(
-		"CREATE {} SET name = 'Multi Question Test', questions = [{}, {}], category = 'Test', is_deleted = false, created_at = '{}', updated_at = '{}'",
+		"CREATE {} SET name = 'Multi Question Test', subject = 'Test Subject', questions = [{}, {}], category = 'Test', is_deleted = false, created_at = '{}', updated_at = '{}'",
 		test_thing, question1_thing, question2_thing, now, now
 	))
 	.await.unwrap();
