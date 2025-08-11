@@ -128,6 +128,7 @@ impl<'a> AdminStatsRepository<'a> {
 				(SELECT COUNT() FROM app_sessions WHERE is_deleted = false AND is_active = true) as active_sessions,
 				(SELECT COUNT() FROM app_questions WHERE is_deleted = false) as total_questions,
 				(SELECT COUNT() FROM app_answers WHERE is_deleted = false) as total_answers_submitted
+			FROM (SELECT 1) as dummy
 		";
 		
 		let exam_counts: Vec<Value> = db.query(exam_counts_query).await?.take(0)?;
@@ -297,6 +298,7 @@ impl<'a> AdminStatsRepository<'a> {
 				(SELECT COUNT() FROM app_options WHERE is_deleted = false) as total_options,
 				(SELECT AVG(CASE WHEN is_correct = true THEN 100 ELSE 0 END) 
 					FROM app_answers WHERE is_deleted = false) as average_correct_rate
+			FROM (SELECT 1) as dummy
 		";
 		
 		let content_counts: Vec<Value> = db.query(content_counts_query).await?.take(0)?;
@@ -393,6 +395,7 @@ impl<'a> AdminStatsRepository<'a> {
 				(SELECT COUNT() FROM app_answers WHERE is_deleted = false) as total_answers,
 				(SELECT COUNT() FROM app_roles WHERE is_deleted = false) as total_roles,
 				(SELECT COUNT() FROM app_permissions WHERE is_deleted = false) as total_permissions
+			FROM (SELECT 1) as dummy
 		";
 		
 		let db_metrics: Vec<Value> = db.query(db_metrics_query).await?.take(0)?;
@@ -425,6 +428,7 @@ impl<'a> AdminStatsRepository<'a> {
 				(SELECT COUNT() FROM app_answers 
 					WHERE is_deleted = false 
 					AND created_at >= time::now() - 30d) as new_answers_this_month
+			FROM (SELECT 1) as dummy
 		";
 		
 		let growth: Vec<Value> = db.query(growth_query).await?.take(0)?;
@@ -479,6 +483,7 @@ impl<'a> AdminStatsRepository<'a> {
 				(SELECT COUNT() FROM app_tests WHERE is_deleted = true) as deleted_tests,
 				(SELECT COUNT() FROM app_sessions WHERE is_deleted = true) as deleted_sessions,
 				(SELECT COUNT() FROM app_questions WHERE is_deleted = true) as deleted_questions
+			FROM (SELECT 1) as dummy
 		";
 		
 		let integrity: Vec<Value> = db.query(integrity_query).await?.take(0)?;

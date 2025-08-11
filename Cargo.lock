@@ -2602,6 +2602,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "najm-tests"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "najm-entity",
+ "najm-exam",
+ "najm-lib",
+ "najm-util",
+ "serde",
+ "serde_json",
+ "surrealdb",
+ "tokio",
+ "uuid",
+ "validator",
+]
+
+[[package]]
 name = "najm-util"
 version = "0.1.0"
 dependencies = [
