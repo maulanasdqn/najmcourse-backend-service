@@ -1,8 +1,6 @@
 [workspace]
 resolver = "2"
 members = [ 
-  "tests",
-  "najm-tests",
   "najm-iam",
   "najm-cms",
   "najm-lib",
