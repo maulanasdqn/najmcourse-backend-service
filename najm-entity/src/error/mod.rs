@@ -1,8 +1,8 @@
 pub mod error {
+	use axum::Json;
 	use axum::http::StatusCode;
 	use axum::response::IntoResponse;
 	use axum::response::Response;
-	use axum::Json;
 	use thiserror::Error;
 
 	#[derive(Error, Debug)]

@@ -1,10 +1,6 @@
-use super::{StudentStatsService, StudentDashboardResponseDto};
-use crate::{permissions_guard, AppState, PermissionsEnum, ResponseSuccessDto};
-use axum::{
-	extract::Path,
-	response::IntoResponse,
-	Extension,
-};
+use super::{StudentDashboardResponseDto, StudentStatsService};
+use crate::{AppState, PermissionsEnum, ResponseSuccessDto, permissions_guard};
+use axum::{Extension, extract::Path, response::IntoResponse};
 
 #[utoipa::path(
 	get,

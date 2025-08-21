@@ -1,17 +1,17 @@
 use super::{
-	StudentDashboardResponseDto, ProfileOverviewDto, PerformanceMetricsDto,
-	CurrentSessionsDto, SubjectBreakdownDto, AchievementsDto, RecentActivityDto,
-	RecommendationsDto, ComparisonDataDto, ScoreDistributionDto, ActiveSessionDto,
-	UpcomingSessionDto, MissedSessionDto, SubjectPerformanceDto, CategoryPerformanceDto,
-	WeakAreaDto, MilestoneDto, StreakDataDto, PerfectScoreDto, RecentTestDto,
-	StudyTimeDto, DailyStudyTimeDto, QuestionStatsDto, NextStepDto, FocusAreaDto,
-	SuggestedScheduleDto, PersonalBestDto, BestSubjectDto, PlatformComparisonDto,
-	MonthlyProgressDto
+	AchievementsDto, ActiveSessionDto, BestSubjectDto, CategoryPerformanceDto,
+	ComparisonDataDto, CurrentSessionsDto, DailyStudyTimeDto, FocusAreaDto,
+	MilestoneDto, MissedSessionDto, MonthlyProgressDto, NextStepDto, PerfectScoreDto,
+	PerformanceMetricsDto, PersonalBestDto, PlatformComparisonDto, ProfileOverviewDto,
+	QuestionStatsDto, RecentActivityDto, RecentTestDto, RecommendationsDto,
+	ScoreDistributionDto, StreakDataDto, StudentDashboardResponseDto, StudyTimeDto,
+	SubjectBreakdownDto, SubjectPerformanceDto, SuggestedScheduleDto,
+	UpcomingSessionDto, WeakAreaDto,
 };
 use anyhow::Result;
+use chrono::{DateTime, NaiveDate, Utc};
 use najm_lib::AppState;
 use serde_json::Value;
-use chrono::{DateTime, Utc, NaiveDate};
 
 pub struct StudentStatsRepository<'a> {
 	state: &'a AppState,
@@ -22,7 +22,10 @@ impl<'a> StudentStatsRepository<'a> {
 		Self { state }
 	}
 
-	pub async fn query_student_dashboard(&self, user_id: &str) -> Result<StudentDashboardResponseDto> {
+	pub async fn query_student_dashboard(
+		&self,
+		user_id: &str,
+	) -> Result<StudentDashboardResponseDto> {
 		let (
 			profile_overview,
 			performance_metrics,
@@ -55,23 +58,29 @@ impl<'a> StudentStatsRepository<'a> {
 		})
 	}
 
-	async fn query_profile_overview(&self, user_id: &str) -> Result<ProfileOverviewDto> {
+	async fn query_profile_overview(
+		&self,
+		user_id: &str,
+	) -> Result<ProfileOverviewDto> {
 		let db = &self.state.surrealdb_ws;
-		
+
 		let user_query = format!(
 			"SELECT * FROM app_users WHERE id = app_users:⟨{}⟩ AND is_deleted = false",
 			user_id
 		);
-		
+
 		let users: Vec<Value> = db.query(&user_query).await?.take(0)?;
-		let user = users.get(0).ok_or_else(|| anyhow::anyhow!("User not found"))?;
-		
+		let user = users
+			.get(0)
+			.ok_or_else(|| anyhow::anyhow!("User not found"))?;
+
 		// Calculate days since registration
 		let created_at = user["created_at"].as_str().unwrap_or("");
 		let created_date = DateTime::parse_from_rfc3339(created_at)
 			.unwrap_or_else(|_| DateTime::from(Utc::now()));
-		let days_since_registration = (Utc::now() - created_date.with_timezone(&Utc)).num_days() as u64;
-		
+		let days_since_registration =
+			(Utc::now() - created_date.with_timezone(&Utc)).num_days() as u64;
+
 		// Get last activity
 		let last_activity_query = format!(
 			"SELECT created_at FROM app_answers 
@@ -79,12 +88,14 @@ impl<'a> StudentStatsRepository<'a> {
 			ORDER BY created_at DESC LIMIT 1",
 			user_id
 		);
-		
-		let last_activities: Vec<Value> = db.query(&last_activity_query).await?.take(0)?;
-		let last_active_date = last_activities.get(0)
+
+		let last_activities: Vec<Value> =
+			db.query(&last_activity_query).await?.take(0)?;
+		let last_active_date = last_activities
+			.get(0)
 			.and_then(|a| a["created_at"].as_str())
 			.map(|s| s.to_string());
-		
+
 		Ok(ProfileOverviewDto {
 			user_id: user_id.to_string(),
 			fullname: user["fullname"].as_str().unwrap_or("").to_string(),
@@ -98,9 +109,12 @@ impl<'a> StudentStatsRepository<'a> {
 		})
 	}
 
-	async fn query_performance_metrics(&self, user_id: &str) -> Result<PerformanceMetricsDto> {
+	async fn query_performance_metrics(
+		&self,
+		user_id: &str,
+	) -> Result<PerformanceMetricsDto> {
 		let db = &self.state.surrealdb_ws;
-		
+
 		// Get overall performance stats
 		let performance_query = format!(
 			r#"
@@ -113,12 +127,14 @@ impl<'a> StudentStatsRepository<'a> {
 			"#,
 			user_id
 		);
-		
+
 		let performance: Vec<Value> = db.query(&performance_query).await?.take(0)?;
-		let perf_data = performance.get(0).ok_or_else(|| anyhow::anyhow!("No performance data"))?;
-		
+		let perf_data = performance
+			.get(0)
+			.ok_or_else(|| anyhow::anyhow!("No performance data"))?;
+
 		let overall_average_score = perf_data["accuracy_rate"].as_f64().unwrap_or(0.0);
-		
+
 		// Get test completion stats
 		let test_stats_query = format!(
 			r#"
@@ -130,10 +146,12 @@ impl<'a> StudentStatsRepository<'a> {
 			"#,
 			user_id
 		);
-		
+
 		let test_stats: Vec<Value> = db.query(&test_stats_query).await?.take(0)?;
-		let test_data = test_stats.get(0).ok_or_else(|| anyhow::anyhow!("No test data"))?;
-		
+		let test_data = test_stats
+			.get(0)
+			.ok_or_else(|| anyhow::anyhow!("No test data"))?;
+
 		let tests_completed = test_data["tests_completed"].as_u64().unwrap_or(0) as u32;
 		let tests_started = test_data["sessions_started"].as_u64().unwrap_or(0) as u32;
 		let completion_rate = if tests_started > 0 {
@@ -141,7 +159,7 @@ impl<'a> StudentStatsRepository<'a> {
 		} else {
 			0.0
 		};
-		
+
 		// Calculate improvement percentage (compare last month to previous month)
 		let improvement_query = format!(
 			r#"
@@ -166,31 +184,32 @@ impl<'a> StudentStatsRepository<'a> {
 			"#,
 			user_id, user_id
 		);
-		
+
 		let improvement: Vec<Value> = db.query(&improvement_query).await?.take(0)?;
 		let improvement_data = improvement.get(0);
-		
+
 		let current_avg = improvement_data
 			.and_then(|d| d["current_avg"].as_f64())
 			.unwrap_or(overall_average_score);
 		let previous_avg = improvement_data
 			.and_then(|d| d["previous_avg"].as_f64())
 			.unwrap_or(current_avg);
-		
+
 		let improvement_percentage = if previous_avg > 0.0 {
 			((current_avg - previous_avg) / previous_avg) * 100.0
 		} else {
 			0.0
 		};
-		
+
 		let trend_direction = if improvement_percentage > 0.0 {
 			"positive"
 		} else if improvement_percentage < 0.0 {
 			"negative"
 		} else {
 			"stable"
-		}.to_string();
-		
+		}
+		.to_string();
+
 		// Get score distribution
 		let distribution_query = format!(
 			r#"
@@ -203,7 +222,7 @@ impl<'a> StudentStatsRepository<'a> {
 			"#,
 			user_id
 		);
-		
+
 		let distribution: Vec<Value> = db.query(&distribution_query).await?.take(0)?;
 		let mut score_dist = ScoreDistributionDto {
 			range_0_20: 0,
@@ -212,7 +231,7 @@ impl<'a> StudentStatsRepository<'a> {
 			range_61_80: 0,
 			range_81_100: 0,
 		};
-		
+
 		for item in distribution {
 			let score = item["score"].as_f64().unwrap_or(0.0);
 			if score <= 20.0 {
@@ -227,7 +246,7 @@ impl<'a> StudentStatsRepository<'a> {
 				score_dist.range_81_100 += 1;
 			}
 		}
-		
+
 		// Calculate percentile
 		let percentile_query = format!(
 			r#"
@@ -246,15 +265,16 @@ impl<'a> StudentStatsRepository<'a> {
 			"#,
 			overall_average_score
 		);
-		
+
 		let percentile: Vec<Value> = db.query(&percentile_query).await?.take(0)?;
-		let users_below = percentile.get(0)
+		let users_below = percentile
+			.get(0)
 			.and_then(|p| p["users_below"].as_u64())
 			.unwrap_or(0);
-		
+
 		// For simplicity, assume 100 total users for percentile calculation
 		let student_percentile = ((users_below as f64 / 100.0) * 100.0) as u32;
-		
+
 		Ok(PerformanceMetricsDto {
 			overall_average_score,
 			improvement_percentage,
@@ -268,10 +288,13 @@ impl<'a> StudentStatsRepository<'a> {
 		})
 	}
 
-	async fn query_current_sessions(&self, user_id: &str) -> Result<CurrentSessionsDto> {
+	async fn query_current_sessions(
+		&self,
+		user_id: &str,
+	) -> Result<CurrentSessionsDto> {
 		let db = &self.state.surrealdb_ws;
 		let now = Utc::now();
-		
+
 		// Get active sessions
 		let active_query = format!(
 			r#"
@@ -287,17 +310,18 @@ impl<'a> StudentStatsRepository<'a> {
 			"#,
 			user_id
 		);
-		
+
 		let active_sessions: Vec<Value> = db.query(&active_query).await?.take(0)?;
-		
+
 		let active_sessions_dto: Vec<ActiveSessionDto> = active_sessions
 			.into_iter()
 			.map(|session| {
 				let end_date = session["tests"][0]["end_date"].as_str().unwrap_or("");
 				let end_datetime = DateTime::parse_from_rfc3339(end_date)
 					.unwrap_or_else(|_| DateTime::from(Utc::now()));
-				let days_remaining = (end_datetime.with_timezone(&Utc) - now).num_days().max(0) as u32;
-				
+				let days_remaining =
+					(end_datetime.with_timezone(&Utc) - now).num_days().max(0) as u32;
+
 				let answer_count = session["answer_count"].as_u64().unwrap_or(0);
 				let total_tests = session["total_tests"].as_u64().unwrap_or(1);
 				let progress_percentage = if total_tests > 0 {
@@ -305,7 +329,7 @@ impl<'a> StudentStatsRepository<'a> {
 				} else {
 					0
 				};
-				
+
 				ActiveSessionDto {
 					session_id: session["id"].as_str().unwrap_or("").to_string(),
 					session_name: session["name"].as_str().unwrap_or("").to_string(),
@@ -317,7 +341,7 @@ impl<'a> StudentStatsRepository<'a> {
 				}
 			})
 			.collect();
-		
+
 		// Get upcoming sessions
 		let upcoming_query = r#"
 			SELECT *
@@ -328,17 +352,18 @@ impl<'a> StudentStatsRepository<'a> {
 			ORDER BY tests[0].start_date ASC
 			LIMIT 5
 		"#;
-		
+
 		let upcoming_sessions: Vec<Value> = db.query(upcoming_query).await?.take(0)?;
-		
+
 		let upcoming_sessions_dto: Vec<UpcomingSessionDto> = upcoming_sessions
 			.into_iter()
 			.map(|session| {
 				let start_date = session["tests"][0]["start_date"].as_str().unwrap_or("");
 				let start_datetime = DateTime::parse_from_rfc3339(start_date)
 					.unwrap_or_else(|_| DateTime::from(Utc::now()));
-				let days_until_start = (start_datetime.with_timezone(&Utc) - now).num_days().max(0) as u32;
-				
+				let days_until_start =
+					(start_datetime.with_timezone(&Utc) - now).num_days().max(0) as u32;
+
 				UpcomingSessionDto {
 					session_id: session["id"].as_str().unwrap_or("").to_string(),
 					session_name: session["name"].as_str().unwrap_or("").to_string(),
@@ -348,7 +373,7 @@ impl<'a> StudentStatsRepository<'a> {
 				}
 			})
 			.collect();
-		
+
 		// Get missed sessions (ended in last 30 days that user didn't participate in)
 		let missed_query = format!(
 			r#"
@@ -366,19 +391,22 @@ impl<'a> StudentStatsRepository<'a> {
 			"#,
 			user_id
 		);
-		
+
 		let missed_sessions: Vec<Value> = db.query(&missed_query).await?.take(0)?;
-		
+
 		let missed_sessions_dto: Vec<MissedSessionDto> = missed_sessions
 			.into_iter()
 			.map(|session| MissedSessionDto {
 				session_id: session["id"].as_str().unwrap_or("").to_string(),
 				session_name: session["name"].as_str().unwrap_or("").to_string(),
 				category: session["category"].as_str().unwrap_or("").to_string(),
-				end_date: session["tests"][0]["end_date"].as_str().unwrap_or("").to_string(),
+				end_date: session["tests"][0]["end_date"]
+					.as_str()
+					.unwrap_or("")
+					.to_string(),
 			})
 			.collect();
-		
+
 		Ok(CurrentSessionsDto {
 			active_sessions: active_sessions_dto,
 			upcoming_sessions: upcoming_sessions_dto,
@@ -386,9 +414,12 @@ impl<'a> StudentStatsRepository<'a> {
 		})
 	}
 
-	async fn query_subject_breakdown(&self, user_id: &str) -> Result<SubjectBreakdownDto> {
+	async fn query_subject_breakdown(
+		&self,
+		user_id: &str,
+	) -> Result<SubjectBreakdownDto> {
 		let db = &self.state.surrealdb_ws;
-		
+
 		// Get performance by subject
 		let subject_query = format!(
 			r#"
@@ -408,20 +439,22 @@ impl<'a> StudentStatsRepository<'a> {
 			"#,
 			user_id
 		);
-		
+
 		let subjects: Vec<Value> = db.query(&subject_query).await?.take(0)?;
-		
+
 		let subjects_dto: Vec<SubjectPerformanceDto> = subjects
 			.into_iter()
 			.map(|item| {
-				let questions_attempted = item["questions_attempted"].as_u64().unwrap_or(0) as u32;
-				let questions_correct = item["questions_correct"].as_u64().unwrap_or(0) as u32;
+				let questions_attempted =
+					item["questions_attempted"].as_u64().unwrap_or(0) as u32;
+				let questions_correct =
+					item["questions_correct"].as_u64().unwrap_or(0) as u32;
 				let accuracy_rate = if questions_attempted > 0 {
 					(questions_correct as f64 / questions_attempted as f64) * 100.0
 				} else {
 					0.0
 				};
-				
+
 				SubjectPerformanceDto {
 					subject: item["subject"].as_str().unwrap_or("Unknown").to_string(),
 					average_score: item["average_score"].as_f64().unwrap_or(0.0),
@@ -432,7 +465,7 @@ impl<'a> StudentStatsRepository<'a> {
 				}
 			})
 			.collect();
-		
+
 		// Get performance by category
 		let category_query = format!(
 			r#"
@@ -450,9 +483,9 @@ impl<'a> StudentStatsRepository<'a> {
 			"#,
 			user_id
 		);
-		
+
 		let categories: Vec<Value> = db.query(&category_query).await?.take(0)?;
-		
+
 		let categories_dto: Vec<CategoryPerformanceDto> = categories
 			.into_iter()
 			.map(|item| CategoryPerformanceDto {
@@ -462,7 +495,7 @@ impl<'a> StudentStatsRepository<'a> {
 				tests_taken: item["tests_taken"].as_u64().unwrap_or(0) as u32,
 			})
 			.collect();
-		
+
 		// Identify weak areas (topics with < 60% accuracy)
 		let weak_areas: Vec<WeakAreaDto> = subjects_dto
 			.iter()
@@ -474,7 +507,7 @@ impl<'a> StudentStatsRepository<'a> {
 				questions_attempted: s.questions_attempted,
 			})
 			.collect();
-		
+
 		Ok(SubjectBreakdownDto {
 			subjects: subjects_dto,
 			categories: categories_dto,
@@ -484,7 +517,7 @@ impl<'a> StudentStatsRepository<'a> {
 
 	async fn query_achievements(&self, user_id: &str) -> Result<AchievementsDto> {
 		let db = &self.state.surrealdb_ws;
-		
+
 		// Get milestones
 		let milestones_query = format!(
 			r#"
@@ -504,10 +537,10 @@ impl<'a> StudentStatsRepository<'a> {
 			"#,
 			user_id, user_id
 		);
-		
+
 		let milestones_data: Vec<Value> = db.query(&milestones_query).await?.take(0)?;
 		let mut milestones = Vec::new();
-		
+
 		if let Some(data) = milestones_data.get(0) {
 			if let Some(first_test_date) = data["first_test_date"].as_str() {
 				milestones.push(MilestoneDto {
@@ -517,7 +550,7 @@ impl<'a> StudentStatsRepository<'a> {
 					achieved_at: first_test_date.to_string(),
 				});
 			}
-			
+
 			let total_tests = data["total_tests"].as_u64().unwrap_or(0);
 			if total_tests >= 10 {
 				milestones.push(MilestoneDto {
@@ -536,7 +569,7 @@ impl<'a> StudentStatsRepository<'a> {
 				});
 			}
 		}
-		
+
 		// Calculate streaks
 		let streak_query = format!(
 			r#"
@@ -550,13 +583,13 @@ impl<'a> StudentStatsRepository<'a> {
 			"#,
 			user_id
 		);
-		
+
 		let streak_data: Vec<Value> = db.query(&streak_query).await?.take(0)?;
 		let mut current_streak = 0;
 		let mut longest_streak = 0;
 		let mut streak_start_date = None;
 		let mut last_date: Option<NaiveDate> = None;
-		
+
 		for (i, item) in streak_data.iter().enumerate() {
 			if let Some(date_str) = item["test_date"].as_str() {
 				if let Ok(date) = NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
@@ -568,7 +601,7 @@ impl<'a> StudentStatsRepository<'a> {
 							streak_start_date = Some(date_str.to_string());
 						}
 					}
-					
+
 					if let Some(last) = last_date {
 						if (last - date).num_days() == 1 {
 							if i == 0 || (i == 1 && current_streak > 0) {
@@ -581,20 +614,20 @@ impl<'a> StudentStatsRepository<'a> {
 							}
 						}
 					}
-					
+
 					last_date = Some(date);
 				}
 			}
 		}
-		
+
 		longest_streak = longest_streak.max(current_streak);
-		
+
 		let streak_data_dto = StreakDataDto {
 			current_streak_days: current_streak as u32,
 			longest_streak_days: longest_streak as u32,
 			streak_start_date,
 		};
-		
+
 		// Get perfect scores
 		let perfect_scores_query = format!(
 			r#"
@@ -614,9 +647,10 @@ impl<'a> StudentStatsRepository<'a> {
 			"#,
 			user_id
 		);
-		
-		let perfect_scores: Vec<Value> = db.query(&perfect_scores_query).await?.take(0)?;
-		
+
+		let perfect_scores: Vec<Value> =
+			db.query(&perfect_scores_query).await?.take(0)?;
+
 		let perfect_scores_dto: Vec<PerfectScoreDto> = perfect_scores
 			.into_iter()
 			.map(|item| PerfectScoreDto {
@@ -625,7 +659,7 @@ impl<'a> StudentStatsRepository<'a> {
 				achieved_at: item["achieved_at"].as_str().unwrap_or("").to_string(),
 			})
 			.collect();
-		
+
 		Ok(AchievementsDto {
 			milestones,
 			streaks: streak_data_dto,
@@ -635,7 +669,7 @@ impl<'a> StudentStatsRepository<'a> {
 
 	async fn query_recent_activity(&self, user_id: &str) -> Result<RecentActivityDto> {
 		let db = &self.state.surrealdb_ws;
-		
+
 		// Get last 5 tests
 		let recent_tests_query = format!(
 			r#"
@@ -654,9 +688,9 @@ impl<'a> StudentStatsRepository<'a> {
 			"#,
 			user_id
 		);
-		
+
 		let recent_tests: Vec<Value> = db.query(&recent_tests_query).await?.take(0)?;
-		
+
 		let last_tests: Vec<RecentTestDto> = recent_tests
 			.into_iter()
 			.map(|item| RecentTestDto {
@@ -667,7 +701,7 @@ impl<'a> StudentStatsRepository<'a> {
 				duration_seconds: 3600, // Default 1 hour
 			})
 			.collect();
-		
+
 		// Get study time for last 7 days
 		let study_time_query = format!(
 			r#"
@@ -683,9 +717,9 @@ impl<'a> StudentStatsRepository<'a> {
 			"#,
 			user_id
 		);
-		
+
 		let study_time_data: Vec<Value> = db.query(&study_time_query).await?.take(0)?;
-		
+
 		let mut total_seconds = 0u32;
 		let daily_breakdown: Vec<DailyStudyTimeDto> = study_time_data
 			.into_iter()
@@ -698,12 +732,12 @@ impl<'a> StudentStatsRepository<'a> {
 				}
 			})
 			.collect();
-		
+
 		let study_time_last_7_days = StudyTimeDto {
 			total_seconds,
 			daily_breakdown,
 		};
-		
+
 		// Get question stats
 		let question_stats_query = format!(
 			r#"
@@ -715,10 +749,13 @@ impl<'a> StudentStatsRepository<'a> {
 			"#,
 			user_id
 		);
-		
-		let question_stats_data: Vec<Value> = db.query(&question_stats_query).await?.take(0)?;
-		let stats_data = question_stats_data.get(0).ok_or_else(|| anyhow::anyhow!("No question stats"))?;
-		
+
+		let question_stats_data: Vec<Value> =
+			db.query(&question_stats_query).await?.take(0)?;
+		let stats_data = question_stats_data
+			.get(0)
+			.ok_or_else(|| anyhow::anyhow!("No question stats"))?;
+
 		let total_answered = stats_data["total_answered"].as_u64().unwrap_or(0) as u32;
 		let total_correct = stats_data["total_correct"].as_u64().unwrap_or(0) as u32;
 		let accuracy_rate = if total_answered > 0 {
@@ -726,13 +763,13 @@ impl<'a> StudentStatsRepository<'a> {
 		} else {
 			0.0
 		};
-		
+
 		let question_stats = QuestionStatsDto {
 			total_answered,
 			total_correct,
 			accuracy_rate,
 		};
-		
+
 		Ok(RecentActivityDto {
 			last_tests,
 			study_time_last_7_days,
@@ -740,9 +777,12 @@ impl<'a> StudentStatsRepository<'a> {
 		})
 	}
 
-	async fn query_recommendations(&self, user_id: &str) -> Result<RecommendationsDto> {
+	async fn query_recommendations(
+		&self,
+		user_id: &str,
+	) -> Result<RecommendationsDto> {
 		let db = &self.state.surrealdb_ws;
-		
+
 		// Get weak subjects for recommendations
 		let weak_subjects_query = format!(
 			r#"
@@ -760,12 +800,12 @@ impl<'a> StudentStatsRepository<'a> {
 			"#,
 			user_id
 		);
-		
+
 		let weak_subjects: Vec<Value> = db.query(&weak_subjects_query).await?.take(0)?;
-		
+
 		// Generate next steps based on performance
 		let mut next_steps = Vec::new();
-		
+
 		// Recommend tests for weak subjects
 		for (i, subject) in weak_subjects.iter().enumerate() {
 			if i < 2 {
@@ -773,12 +813,15 @@ impl<'a> StudentStatsRepository<'a> {
 				next_steps.push(NextStepDto {
 					action_type: "test".to_string(),
 					title: format!("Practice {} Fundamentals", subject_name),
-					reason: format!("Your accuracy in {} is below 60%. Practice will help improve.", subject_name),
+					reason: format!(
+						"Your accuracy in {} is below 60%. Practice will help improve.",
+						subject_name
+					),
 					resource_id: None,
 				});
 			}
 		}
-		
+
 		// Add general recommendation
 		next_steps.push(NextStepDto {
 			action_type: "review".to_string(),
@@ -786,26 +829,38 @@ impl<'a> StudentStatsRepository<'a> {
 			reason: "Analyzing your errors helps prevent repeating them".to_string(),
 			resource_id: None,
 		});
-		
+
 		// Generate focus areas
 		let focus_areas: Vec<FocusAreaDto> = weak_subjects
 			.into_iter()
 			.enumerate()
 			.map(|(i, subject)| {
-				let priority = if i == 0 { "high" } else if i == 1 { "medium" } else { "low" };
+				let priority = if i == 0 {
+					"high"
+				} else if i == 1 {
+					"medium"
+				} else {
+					"low"
+				};
 				FocusAreaDto {
-					topic: format!("{} Concepts", subject["subject"].as_str().unwrap_or("Unknown")),
+					topic: format!(
+						"{} Concepts",
+						subject["subject"].as_str().unwrap_or("Unknown")
+					),
 					subject: subject["subject"].as_str().unwrap_or("Unknown").to_string(),
 					priority: priority.to_string(),
-					reason: format!("Accuracy: {:.1}%", subject["accuracy"].as_f64().unwrap_or(0.0)),
+					reason: format!(
+						"Accuracy: {:.1}%",
+						subject["accuracy"].as_f64().unwrap_or(0.0)
+					),
 				}
 			})
 			.collect();
-		
+
 		// Generate suggested schedule
 		let days = vec!["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 		let subjects = vec!["Matematika", "Fisika", "Kimia", "Biologi", "Bahasa"];
-		
+
 		let suggested_schedule: Vec<SuggestedScheduleDto> = days
 			.into_iter()
 			.zip(subjects.into_iter().cycle())
@@ -815,7 +870,7 @@ impl<'a> StudentStatsRepository<'a> {
 				suggested_minutes: 120,
 			})
 			.collect();
-		
+
 		Ok(RecommendationsDto {
 			next_steps,
 			focus_areas,
@@ -825,7 +880,7 @@ impl<'a> StudentStatsRepository<'a> {
 
 	async fn query_comparison_data(&self, user_id: &str) -> Result<ComparisonDataDto> {
 		let db = &self.state.surrealdb_ws;
-		
+
 		// Get personal best
 		let personal_best_query = format!(
 			r#"
@@ -844,10 +899,10 @@ impl<'a> StudentStatsRepository<'a> {
 			"#,
 			user_id
 		);
-		
+
 		let best_test: Vec<Value> = db.query(&personal_best_query).await?.take(0)?;
 		let best_data = best_test.get(0);
-		
+
 		// Get best subjects
 		let best_subjects_query = format!(
 			r#"
@@ -863,9 +918,10 @@ impl<'a> StudentStatsRepository<'a> {
 			"#,
 			user_id
 		);
-		
-		let best_subjects_data: Vec<Value> = db.query(&best_subjects_query).await?.take(0)?;
-		
+
+		let best_subjects_data: Vec<Value> =
+			db.query(&best_subjects_query).await?.take(0)?;
+
 		let best_subjects: Vec<BestSubjectDto> = best_subjects_data
 			.into_iter()
 			.map(|item| BestSubjectDto {
@@ -873,11 +929,10 @@ impl<'a> StudentStatsRepository<'a> {
 				highest_score: item["highest_score"].as_f64().unwrap_or(0.0) as i32,
 			})
 			.collect();
-		
+
 		let personal_best = PersonalBestDto {
-			highest_score: best_data
-				.and_then(|d| d["score"].as_f64())
-				.unwrap_or(0.0) as i32,
+			highest_score: best_data.and_then(|d| d["score"].as_f64()).unwrap_or(0.0)
+				as i32,
 			best_test_name: best_data
 				.and_then(|d| d["test_name"].as_str())
 				.unwrap_or("N/A")
@@ -888,7 +943,7 @@ impl<'a> StudentStatsRepository<'a> {
 				.to_string(),
 			best_subjects,
 		};
-		
+
 		// Get platform comparison
 		let your_avg_query = format!(
 			r#"
@@ -898,44 +953,47 @@ impl<'a> StudentStatsRepository<'a> {
 			"#,
 			user_id
 		);
-		
+
 		let platform_avg_query = r#"
 			SELECT AVG(CASE WHEN is_correct = true THEN 100 ELSE 0 END) as avg_score
 			FROM app_answers
 			WHERE is_deleted = false
 		"#;
-		
+
 		let your_avg: Vec<Value> = db.query(&your_avg_query).await?.take(0)?;
 		let platform_avg: Vec<Value> = db.query(platform_avg_query).await?.take(0)?;
-		
-		let your_average = your_avg.get(0)
+
+		let your_average = your_avg
+			.get(0)
 			.and_then(|d| d["avg_score"].as_f64())
 			.unwrap_or(0.0);
-		let platform_average = platform_avg.get(0)
+		let platform_average = platform_avg
+			.get(0)
 			.and_then(|d| d["avg_score"].as_f64())
 			.unwrap_or(0.0);
-		
+
 		let position = if your_average > platform_average {
 			"above"
 		} else if your_average < platform_average {
 			"below"
 		} else {
 			"equal"
-		}.to_string();
-		
+		}
+		.to_string();
+
 		let difference_percentage = if platform_average > 0.0 {
 			((your_average - platform_average) / platform_average).abs() * 100.0
 		} else {
 			0.0
 		};
-		
+
 		let platform_comparison = PlatformComparisonDto {
 			your_average,
 			platform_average,
 			position,
 			difference_percentage,
 		};
-		
+
 		// Get monthly progress
 		let monthly_progress_query = format!(
 			r#"
@@ -952,12 +1010,13 @@ impl<'a> StudentStatsRepository<'a> {
 			"#,
 			user_id
 		);
-		
-		let monthly_data: Vec<Value> = db.query(&monthly_progress_query).await?.take(0)?;
-		
+
+		let monthly_data: Vec<Value> =
+			db.query(&monthly_progress_query).await?.take(0)?;
+
 		let mut monthly_progress: Vec<MonthlyProgressDto> = Vec::new();
 		let mut previous_score = None;
-		
+
 		for item in monthly_data.into_iter().rev() {
 			let average_score = item["average_score"].as_f64().unwrap_or(0.0);
 			let improvement = if let Some(prev) = previous_score {
@@ -969,17 +1028,17 @@ impl<'a> StudentStatsRepository<'a> {
 			} else {
 				0.0
 			};
-			
+
 			monthly_progress.push(MonthlyProgressDto {
 				month: item["month"].as_str().unwrap_or("").to_string(),
 				average_score,
 				tests_taken: item["tests_taken"].as_u64().unwrap_or(0) as u32,
 				improvement_from_previous: improvement,
 			});
-			
+
 			previous_score = Some(average_score);
 		}
-		
+
 		Ok(ComparisonDataDto {
 			personal_best,
 			platform_comparison,

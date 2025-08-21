@@ -1,5 +1,5 @@
 use super::PermissionsEnum;
-use crate::{common_response, extract_email, AppState, AuthRepository};
+use crate::{AppState, AuthRepository, common_response, extract_email};
 use axum::{
 	http::{HeaderMap, StatusCode},
 	response::Response,

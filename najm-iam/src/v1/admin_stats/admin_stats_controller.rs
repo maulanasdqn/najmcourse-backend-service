@@ -1,6 +1,6 @@
-use super::{AdminStatsService, AdminDashboardStatsResponseDto};
-use crate::{permissions_guard, AppState, PermissionsEnum, ResponseSuccessDto};
-use axum::{response::IntoResponse, Extension};
+use super::{AdminDashboardStatsResponseDto, AdminStatsService};
+use crate::{AppState, PermissionsEnum, ResponseSuccessDto, permissions_guard};
+use axum::{Extension, response::IntoResponse};
 
 #[utoipa::path(
 	get,

@@ -1,7 +1,4 @@
-use axum::{
-	Router,
-	routing::get,
-};
+use axum::{Router, routing::get};
 
 pub mod admin_stats_controller;
 pub mod admin_stats_dto;
@@ -16,6 +13,5 @@ pub use admin_stats_schema::*;
 pub use admin_stats_service::*;
 
 pub fn admin_stats_router() -> Router {
-	Router::new()
-		.route("/dashboard", get(get_admin_dashboard_stats))
+	Router::new().route("/dashboard", get(get_admin_dashboard_stats))
 }

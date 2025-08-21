@@ -1,5 +1,5 @@
-use crate::{surrealdb_init_mem, surrealdb_init_ws, Env};
-use axum::{serve, Router};
+use crate::{Env, surrealdb_init_mem, surrealdb_init_ws};
+use axum::{Router, serve};
 use log::{debug, error, info};
 use najm_entity::{SurrealMemClient, SurrealWsClient};
 use std::{future::Future, net::SocketAddr};

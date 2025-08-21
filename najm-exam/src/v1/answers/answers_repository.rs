@@ -93,15 +93,28 @@ impl<'a> AnswersRepository<'a> {
 			});
 		}
 		let test_response = test.clone().test;
-		let total_points: f32 = questions_dto
-			.iter()
-			.flat_map(|q| &q.options)
-			.filter(|o| o.is_user_selected)
-			.map(|o| o.points.unwrap_or(0.0))
-			.sum();
-		let score = total_points as f64 * test.multiplier;
-		let weight = SessionWeightEnum::to_float(&test.weight);
-		let score_total = (weight * score).round() as i32;
+		let score_total = {
+			let mut total_points: f32 = 0.0;
+			if test_response.category == "Akademik" {
+				total_points = questions_dto
+					.iter()
+					.flat_map(|q| &q.options)
+					.filter(|o| o.is_user_selected && o.is_correct)
+					.map(|o| o.points.unwrap_or(0.0))
+					.sum();
+			}
+			if test_response.category == "Psikologi" {
+				total_points = questions_dto
+					.iter()
+					.flat_map(|q| &q.options)
+					.filter(|o| o.is_user_selected)
+					.map(|o| o.points.unwrap_or(0.0))
+					.sum();
+			}
+			let score = total_points as f64 * test.multiplier;
+			let weight = SessionWeightEnum::to_float(&test.weight);
+			(weight * score).round() as i32
+		};
 		Ok(TestsItemAnswersDto {
 			id: answer_id,
 			name: test_response.name,
@@ -360,15 +373,28 @@ impl<'a> AnswersRepository<'a> {
 				updated_at: question.updated_at,
 			});
 		}
-		let total_points: f32 = questions_dto
-			.iter()
-			.flat_map(|q| &q.options)
-			.filter(|o| o.is_user_selected && o.is_correct)
-			.map(|o| o.points.unwrap_or(0.0))
-			.sum();
-		let score = total_points as f64 * test.multiplier;
-		let weight = SessionWeightEnum::to_float(&test.weight);
-		let score_total = (weight * score).round() as i32;
+		let score_total = {
+			let mut total_points: f32 = 0.0;
+			if test_data.category == "Akademik" {
+				total_points = questions_dto
+					.iter()
+					.flat_map(|q| &q.options)
+					.filter(|o| o.is_user_selected && o.is_correct)
+					.map(|o| o.points.unwrap_or(0.0))
+					.sum();
+			}
+			if test_data.category == "Psikologi" {
+				total_points = questions_dto
+					.iter()
+					.flat_map(|q| &q.options)
+					.filter(|o| o.is_user_selected)
+					.map(|o| o.points.unwrap_or(0.0))
+					.sum();
+			}
+			let score = total_points as f64 * test.multiplier;
+			let weight = SessionWeightEnum::to_float(&test.weight);
+			(weight * score).round() as i32
+		};
 		Ok(TestsItemAnswersDto {
 			id: answer_id,
 			name: test_data.name,

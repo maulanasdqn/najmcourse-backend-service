@@ -3,13 +3,13 @@ use super::{
 	SessionsService, SessionsUpdateRequestDto, StudentStatsResponseDto,
 };
 use crate::{
-	permissions_guard, AppState, MessageResponseDto, MetaRequestDto, PermissionsEnum,
-	ResponseListSuccessDto, ResponseSuccessDto,
+	AppState, MessageResponseDto, MetaRequestDto, PermissionsEnum,
+	ResponseListSuccessDto, ResponseSuccessDto, permissions_guard,
 };
 use axum::{
+	Extension, Json,
 	extract::{Path, Query},
 	response::IntoResponse,
-	Extension, Json,
 };
 
 #[utoipa::path(
